@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CheatTable CheatEngineTableVersion="45">
+  <CheatEntries>
+    <CheatEntry>
+      <ID>1</ID>
+      <Description>"primary gun mag ammo"</Description>
+      <VariableType>4 Bytes</VariableType>
+      <Address>"plutonium-bootstrapper-win32.exe"+1F42BCC</Address>
+    </CheatEntry>
+    <CheatEntry>
+      <ID>2</ID>
+      <Description>"ptr to primary gun mag ammo"</Description>
+      <VariableType>4 Bytes</VariableType>
+      <Address>"plutonium-bootstrapper-win32.exe"+01040B3C</Address>
+      <Offsets>
+        <Offset>42C</Offset>
+        <Offset>260</Offset>
+        <Offset>74</Offset>
+        <Offset>54</Offset>
+      </Offsets>
+    </CheatEntry>
+  </CheatEntries>
+  <UserdefinedSymbols/>
+</CheatTable>
