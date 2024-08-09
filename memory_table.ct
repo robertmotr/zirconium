@@ -73,7 +73,7 @@
     </CheatEntry>
     <CheatEntry>
       <ID>21</ID>
-      <Description>"money"</Description>
+      <Description>"misc"</Description>
       <GroupHeader>1</GroupHeader>
       <Address/>
       <CheatEntries>
@@ -83,19 +83,13 @@
           <VariableType>4 Bytes</VariableType>
           <Address>"plutonium-bootstrapper-win32.exe"+1F47D68</Address>
         </CheatEntry>
+        <CheatEntry>
+          <ID>41</ID>
+          <Description>"health"</Description>
+          <VariableType>4 Bytes</VariableType>
+          <Address>"plutonium-bootstrapper-win32.exe"+1DC1568</Address>
+        </CheatEntry>
       </CheatEntries>
-    </CheatEntry>
-    <CheatEntry>
-      <ID>40</ID>
-      <Description>"nuketown counter"</Description>
-      <VariableType>4 Bytes</VariableType>
-      <Address>4BA91F88</Address>
-    </CheatEntry>
-    <CheatEntry>
-      <ID>50</ID>
-      <Description>"health"</Description>
-      <VariableType>4 Bytes</VariableType>
-      <Address>4A7E4CD0</Address>
     </CheatEntry>
   </CheatEntries>
   <UserdefinedSymbols/>
