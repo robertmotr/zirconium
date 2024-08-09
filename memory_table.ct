@@ -2,22 +2,44 @@
 <CheatTable CheatEngineTableVersion="45">
   <CheatEntries>
     <CheatEntry>
-      <ID>1</ID>
-      <Description>"primary gun mag ammo"</Description>
-      <VariableType>4 Bytes</VariableType>
-      <Address>"plutonium-bootstrapper-win32.exe"+1F42BCC</Address>
-    </CheatEntry>
-    <CheatEntry>
-      <ID>2</ID>
-      <Description>"ptr to primary gun mag ammo"</Description>
-      <VariableType>4 Bytes</VariableType>
-      <Address>"plutonium-bootstrapper-win32.exe"+01040B3C</Address>
-      <Offsets>
-        <Offset>42C</Offset>
-        <Offset>260</Offset>
-        <Offset>74</Offset>
-        <Offset>54</Offset>
-      </Offsets>
+      <ID>0</ID>
+      <Description>"guns/ammo"</Description>
+      <GroupHeader>1</GroupHeader>
+      <Address/>
+      <CheatEntries>
+        <CheatEntry>
+          <ID>2</ID>
+          <Description>"secondary weapon primary ammo"</Description>
+          <VariableType>4 Bytes</VariableType>
+          <Address>"plutonium-bootstrapper-win32.exe"+1F42BCC</Address>
+          <CheatEntries>
+            <CheatEntry>
+              <ID>6</ID>
+              <Description>"pointerscan result"</Description>
+              <VariableType>4 Bytes</VariableType>
+              <Address>"plutonium-bootstrapper-win32.exe"+1400F81C</Address>
+              <Offsets>
+                <Offset>2CC</Offset>
+              </Offsets>
+            </CheatEntry>
+            <CheatEntry>
+              <ID>15</ID>
+              <Description>"pointerscan result"</Description>
+              <VariableType>4 Bytes</VariableType>
+              <Address>"plutonium-bootstrapper-win32.exe"+13F71900</Address>
+              <Offsets>
+                <Offset>7CC</Offset>
+              </Offsets>
+            </CheatEntry>
+          </CheatEntries>
+        </CheatEntry>
+        <CheatEntry>
+          <ID>4</ID>
+          <Description>"primary weapon primary ammo"</Description>
+          <VariableType>4 Bytes</VariableType>
+          <Address>"plutonium-bootstrapper-win32.exe"+1F42BD4</Address>
+        </CheatEntry>
+      </CheatEntries>
     </CheatEntry>
   </CheatEntries>
   <UserdefinedSymbols/>
