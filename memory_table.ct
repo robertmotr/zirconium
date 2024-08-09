@@ -82,12 +82,55 @@
           <Description>"money"</Description>
           <VariableType>4 Bytes</VariableType>
           <Address>"plutonium-bootstrapper-win32.exe"+1F47D68</Address>
+          <CheatEntries>
+            <CheatEntry>
+              <ID>43</ID>
+              <Description>"pointerscan result"</Description>
+              <VariableType>4 Bytes</VariableType>
+              <Address>"plutonium-bootstrapper-win32.exe"+0250B8DC</Address>
+              <Offsets>
+                <Offset>D8</Offset>
+              </Offsets>
+            </CheatEntry>
+            <CheatEntry>
+              <ID>44</ID>
+              <Description>"pointerscan result"</Description>
+              <VariableType>4 Bytes</VariableType>
+              <Address>"plutonium-bootstrapper-win32.exe"+02ABE668</Address>
+              <Offsets>
+                <Offset>A58</Offset>
+              </Offsets>
+            </CheatEntry>
+            <CheatEntry>
+              <ID>45</ID>
+              <Description>"pointerscan result"</Description>
+              <VariableType>4 Bytes</VariableType>
+              <Address>"plutonium-bootstrapper-win32.exe"+00D140EC</Address>
+              <Offsets>
+                <Offset>544</Offset>
+                <Offset>AA8</Offset>
+                <Offset>98</Offset>
+                <Offset>60</Offset>
+              </Offsets>
+            </CheatEntry>
+          </CheatEntries>
         </CheatEntry>
         <CheatEntry>
           <ID>41</ID>
           <Description>"health"</Description>
           <VariableType>4 Bytes</VariableType>
           <Address>"plutonium-bootstrapper-win32.exe"+1DC1568</Address>
+          <CheatEntries>
+            <CheatEntry>
+              <ID>42</ID>
+              <Description>"pointerscan result"</Description>
+              <VariableType>4 Bytes</VariableType>
+              <Address>"plutonium-bootstrapper-win32.exe"+0087B5E8</Address>
+              <Offsets>
+                <Offset>1CC</Offset>
+              </Offsets>
+            </CheatEntry>
+          </CheatEntries>
         </CheatEntry>
       </CheatEntries>
     </CheatEntry>
