@@ -34,12 +34,68 @@
           </CheatEntries>
         </CheatEntry>
         <CheatEntry>
-          <ID>4</ID>
+          <ID>26</ID>
+          <Description>"secondary weapon reserve ammo"</Description>
+          <VariableType>4 Bytes</VariableType>
+          <Address>"plutonium-bootstrapper-win32.exe"+1F42B90</Address>
+        </CheatEntry>
+        <CheatEntry>
+          <ID>28</ID>
           <Description>"primary weapon primary ammo"</Description>
+          <VariableType>4 Bytes</VariableType>
+          <Address>"plutonium-bootstrapper-win32.exe"+1F42BC8</Address>
+        </CheatEntry>
+        <CheatEntry>
+          <ID>30</ID>
+          <Description>"primary weapon reserve ammo"</Description>
+          <VariableType>4 Bytes</VariableType>
+          <Address>"plutonium-bootstrapper-win32.exe"+1F42B8C</Address>
+        </CheatEntry>
+        <CheatEntry>
+          <ID>23</ID>
+          <Description>"grenades"</Description>
+          <VariableType>4 Bytes</VariableType>
+          <Address>"plutonium-bootstrapper-win32.exe"+1F42BD0</Address>
+        </CheatEntry>
+        <CheatEntry>
+          <ID>33</ID>
+          <Description>"monkey bombs"</Description>
+          <VariableType>4 Bytes</VariableType>
+          <Address>"plutonium-bootstrapper-win32.exe"+1F42BDC</Address>
+        </CheatEntry>
+        <CheatEntry>
+          <ID>39</ID>
+          <Description>"claymores"</Description>
           <VariableType>4 Bytes</VariableType>
           <Address>"plutonium-bootstrapper-win32.exe"+1F42BD4</Address>
         </CheatEntry>
       </CheatEntries>
+    </CheatEntry>
+    <CheatEntry>
+      <ID>21</ID>
+      <Description>"money"</Description>
+      <GroupHeader>1</GroupHeader>
+      <Address/>
+      <CheatEntries>
+        <CheatEntry>
+          <ID>20</ID>
+          <Description>"money"</Description>
+          <VariableType>4 Bytes</VariableType>
+          <Address>"plutonium-bootstrapper-win32.exe"+1F47D68</Address>
+        </CheatEntry>
+      </CheatEntries>
+    </CheatEntry>
+    <CheatEntry>
+      <ID>40</ID>
+      <Description>"nuketown counter"</Description>
+      <VariableType>4 Bytes</VariableType>
+      <Address>4BA91F88</Address>
+    </CheatEntry>
+    <CheatEntry>
+      <ID>50</ID>
+      <Description>"health"</Description>
+      <VariableType>4 Bytes</VariableType>
+      <Address>4A7E4CD0</Address>
     </CheatEntry>
   </CheatEntries>
   <UserdefinedSymbols/>
