@@ -1,21 +1,6 @@
 #pragma once
 
-#include <windows.h>
-#include <d3d9.h>
-#include <d3dx9.h>
-#include <cstdio>
-#include <string>
-#include <iostream>
-
-#include "logger.h"
-#include "imgui.h"
-#include "imgui_impl_dx9.h"
-#include "imgui_impl_win32.h"
-
-// link dx9 stuff
-#pragma comment(lib, "d3d9.lib")
-#pragma comment(lib, "d3dx9.lib")
-#pragma comment(lib, "logging.lib")
+#include "pch.h"
 
 #define                                     ENDSCENE_INDEX 42 // index of EndScene() in IDirect3DDevice9 vtable
 
@@ -70,4 +55,4 @@ HRESULT __stdcall installHook();
     *
     * @param hModule The handle to the DLL module.
 */
-void __stdcall hookThread(HMODULE hModule);
+void __stdcall startThread(HMODULE hModule);

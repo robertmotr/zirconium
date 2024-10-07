@@ -104,7 +104,7 @@ HRESULT __stdcall installHook() {
     *
     * @param hModule The handle to the DLL module.
 */
-void __stdcall hookThread(HMODULE hModule) {
+void __stdcall startThread(HMODULE hModule) {
     AllocConsole();
     freopen_s(reinterpret_cast<FILE**>(stdout), "CONOUT$", "w", stdout);
     LOG("Hook thread started.");

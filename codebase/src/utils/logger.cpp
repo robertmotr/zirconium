@@ -1,7 +1,4 @@
 #include "logger.h"
-#include <string>
-#include <d3d9.h>
-#include <Windows.h>
 
 // Base case: only one argument left 
 template<typename T>
