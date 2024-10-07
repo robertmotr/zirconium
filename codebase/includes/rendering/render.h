@@ -1,6 +1,10 @@
 #pragma once
 
 #include "pch.h"
+#include "imgui_style.h"
+#include "imgui.h"
+#include "imgui_impl_dx9.h"
+#include "imgui_impl_win32.h"
 
 extern bool initialized; // flag to check if ImGui is initialized
 extern ImGuiIO* io; // stored globally to reduce overhead inside renderOverlay
@@ -21,4 +25,10 @@ void __stdcall renderContent();
 * Called every frame to render the ImGui overlay from inside our hook.
 */
 void __stdcall renderOverlay();
+
+/*
+* Style the ImGui overlay. 
+* credits to https://github.com/adobe/imgui/blob/master/imgui_spectrum.h
+*/
+void __stdcall setImGuiStyle();
 
