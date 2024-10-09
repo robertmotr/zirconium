@@ -8,3 +8,7 @@
 *.db-wal
 *.ipch
 /codebase/.vs/codebase/v17
+/codebase/build
+codebase/codebase.aps
+codebase/codebase.rc
+/codebase/.vs/codebase/copilot-chat

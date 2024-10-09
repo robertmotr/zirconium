@@ -1,12 +1,13 @@
 #pragma once
 
-#include "pch.h"
+#include "render.h"
+#include "scan_mem.h"
 
 #define                                     ENDSCENE_INDEX 42 // index of EndScene() in IDirect3DDevice9 vtable
 
-DWORD*										oEndScene = nullptr; // original EndScene function address
-DWORD*										vtable = nullptr; // IDirect3DDevice9 virtual method table
-volatile LPDIRECT3DDEVICE9                  pDevice = nullptr; // IDirect3DDevice9 pointer being used in the target application
+extern DWORD*								oEndScene; // original EndScene function address
+extern DWORD*								vtable; // IDirect3DDevice9 virtual method table
+extern volatile LPDIRECT3DDEVICE9           pDevice; // IDirect3DDevice9 pointer being used in the target application
 
 /*
     Hooked EndScene function for DX9 rendering pipeline.
@@ -33,7 +34,7 @@ volatile LPDIRECT3DDEVICE9                  pDevice = nullptr; // IDirect3DDevic
         pointer passed to EndScene. I didn't come up with this asm code as well as finding the offset,
         credits to the UC posts I've researched and the original author.
 */
-__declspec(naked) void hkEndScene();
+void __stdcall hkEndScene();
 
 /*
 * Finds the IDirect3DDevice9 pointer and the VMT. Address to VMT is then stored globally in vtable.

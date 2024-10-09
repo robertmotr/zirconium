@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "render.h"
 
 bool initialized = false; // check if ImGui is initialized
@@ -7,7 +8,9 @@ ImGuiIO* io = nullptr; // stored globally to reduce overhead inside renderOverla
 * Styles the ImGui overlay.
 * credits to https://github.com/GraphicsProgramming/dear-imgui-styles
 */
-void __stdcall StyleColorsSpectrum() {
+void __stdcall setImGuiStyle() {
+    using namespace ImGui;
+
     ImGuiStyle* style = &ImGui::GetStyle();
     style->GrabRounding = 4.0f;
 
@@ -61,7 +64,7 @@ void __stdcall StyleColorsSpectrum() {
 * Initializes the ImGui overlay inside our hook.
 * @return S_OK if successful, E_FAIL otherwise
 */
-HRESULT __stdcall initOverlay() {
+HRESULT __stdcall initOverlay(LPDIRECT3DDEVICE9 pDevice) {
     LOG("Initializing ImGui...");
     initialized = true;
 
@@ -75,22 +78,23 @@ HRESULT __stdcall initOverlay() {
 
     HRESULT hr;
     D3DDEVICE_CREATION_PARAMETERS cparams;
-    hr = ptrDevice->GetCreationParameters(&cparams);
+    hr = pDevice->GetCreationParameters(&cparams);
     if (FAILED(hr)) {
         LOG("Failed to get device creation parameters.");
-        return;
+        return E_FAIL;
     }
 
     // init backend with correct window handle
     if (!ImGui_ImplWin32_Init(cparams.hFocusWindow)) {
         LOG("ImGui_ImplWin32_Init failed.");
-        return;
+        return E_FAIL;
     }
-    if (!ImGui_ImplDX9_Init(ptrDevice)) {
+    if (!ImGui_ImplDX9_Init(pDevice)) {
         LOG("ImGui_ImplDX9_Init failed.");
-        return;
+        return E_FAIL;
     }
     LOG("ImGui initialized successfully.");
+    return S_OK;
 }
 
 /*
@@ -107,11 +111,11 @@ void __stdcall renderContent() {
 /*
 * Called every frame to render the ImGui overlay from inside our hook.
 */
-void __stdcall renderOverlay() {
+void __stdcall renderOverlay(LPDIRECT3DDEVICE9 pDevice) {
 
     HRESULT hr;
     if (!initialized) {
-		hr = initOverlay();
+		hr = initOverlay(pDevice);
         if (FAILED(hr)) {
             LOG("Failed to initialize ImGui overlay.");
             return;

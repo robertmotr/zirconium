@@ -1,6 +1,5 @@
-#include "render.h"
+#include "pch.h"
 #include "vmt_hook.h"
-#include "logger.h"
 
 BOOL __stdcall DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved) {
     if (fdwReason == DLL_PROCESS_ATTACH) {

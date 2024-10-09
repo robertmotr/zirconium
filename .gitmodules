@@ -1,0 +1,6 @@
+[submodule "codebase/external/external/imgui"]
+	path = codebase/external/external/imgui
+	url = https://www.github.com/ocornut/imgui
+[submodule "codebase/external/imgui"]
+	path = codebase/external/imgui
+	url = https://www.github.com/ocornut/imgui

@@ -70,21 +70,31 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>$(SolutionDir)build</OutDir>
+    <IntDir>$(SolutionDir)build\intermediate</IntDir>
+    <TargetName>zirconium</TargetName>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)includes\hooks;$(SolutionDir)includes\utils;$(SolutionDir)includes\rendering;$(SolutionDir)includes;$(DXSDK_DIR)Include</AdditionalIncludeDirectories>
-      <ControlFlowGuard>Guard</ControlFlowGuard>
+      <AdditionalIncludeDirectories>$(SolutionDir)external\imgui;$(SolutionDir)external\imgui\backends;$(SolutionDir)includes\hooks;$(SolutionDir)includes\utils;$(SolutionDir)includes\rendering;$(SolutionDir)includes;$(DXSDK_DIR)Include</AdditionalIncludeDirectories>
+      <ControlFlowGuard>false</ControlFlowGuard>
       <FloatingPointModel>Strict</FloatingPointModel>
       <CallingConvention>StdCall</CallingConvention>
+      <PrecompiledHeader>Create</PrecompiledHeader>
+      <ForcedIncludeFiles>pch.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(DXSDK_DIR)Lib\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)external;$(DXSDK_DIR)Lib\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <LinkStatus>true</LinkStatus>
+      <ShowProgress>LinkVerbose</ShowProgress>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -132,6 +142,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="external\imgui\backends\imgui_impl_dx9.cpp" />
+    <ClCompile Include="external\imgui\backends\imgui_impl_win32.cpp" />
+    <ClCompile Include="external\imgui\imgui.cpp" />
+    <ClCompile Include="external\imgui\imgui_draw.cpp" />
+    <ClCompile Include="external\imgui\imgui_tables.cpp" />
+    <ClCompile Include="external\imgui\imgui_widgets.cpp" />
     <ClCompile Include="src\dll_main.cpp" />
     <ClCompile Include="src\hooks\vmt_hook.cpp" />
     <ClCompile Include="src\pch.cpp" />
@@ -140,12 +156,24 @@
     <ClCompile Include="src\utils\scan_mem.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="external\imgui\backends\imgui_impl_dx9.h" />
+    <ClInclude Include="external\imgui\backends\imgui_impl_win32.h" />
+    <ClInclude Include="external\imgui\imconfig.h" />
+    <ClInclude Include="external\imgui\imgui.h" />
+    <ClInclude Include="external\imgui\imgui_internal.h" />
+    <ClInclude Include="external\imgui\imstb_rectpack.h" />
+    <ClInclude Include="external\imgui\imstb_textedit.h" />
+    <ClInclude Include="external\imgui\imstb_truetype.h" />
     <ClInclude Include="includes\hooks\vmt_hook.h" />
     <ClInclude Include="includes\pch.h" />
     <ClInclude Include="includes\rendering\imgui_style.h" />
     <ClInclude Include="includes\rendering\render.h" />
     <ClInclude Include="includes\utils\logger.h" />
     <ClInclude Include="includes\utils\scan_mem.h" />
+    <ClInclude Include="resource.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="codebase.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

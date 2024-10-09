@@ -1,6 +1,6 @@
 #pragma once
 
-#include "pch.h"
+#include <cstdint>
 
 /*
 * Compares a pattern to a specified memory region.

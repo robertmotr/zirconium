@@ -1,4 +1,9 @@
+#include "pch.h"
 #include "vmt_hook.h"
+
+DWORD*                          oEndScene = nullptr; // original EndScene function address
+DWORD*                          vtable = nullptr; // IDirect3DDevice9 virtual method table
+volatile LPDIRECT3DDEVICE9      pDevice = nullptr; // IDirect3DDevice9 pointer being used in the target application
 
 /*
     Hooked EndScene function for DX9 rendering pipeline.
@@ -25,7 +30,9 @@
         pointer passed to EndScene. I didn't come up with this asm code as well as finding the offset,
         credits to the UC posts I've researched and the original author.
 */
-__declspec(naked) void hkEndScene() {
+__declspec(naked) void __stdcall hkEndScene() {
+
+    // asm instructions documented for clarity
 
     __asm {
         pushad // push all general purpose registers onto stack
@@ -54,7 +61,7 @@ __declspec(naked) void hkEndScene() {
 HRESULT __stdcall findVMT() {
     LOG("Attempting to find VMT...");
     DWORD hD3D = NULL;
-    while (!hD3D) hD3D = (DWORD)GetModuleHandle("d3d9.dll");
+    while (!hD3D) hD3D = (DWORD)GetModuleHandle(L"d3d9.dll");
     LOG("d3d9.dll found.");
     // pointer chain:
     // d3d9.dll -> IDirect3D9 -> IDirect3DDevice9 -> IDirect3DDevice9 VMT
@@ -96,6 +103,7 @@ HRESULT __stdcall installHook() {
         LOG("Failed to install hook.");
         return E_FAIL;
     }
+    return S_OK;
 }
 
 /*

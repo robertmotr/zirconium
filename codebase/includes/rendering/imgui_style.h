@@ -1,7 +1,5 @@
 #pragma once
 
-#include "pch.h"
-
 /*
 * Not my code.
 * Credits to https://github.com/adobe/imgui/blob/master/imgui_spectrum.h
