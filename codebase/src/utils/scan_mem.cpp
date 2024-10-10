@@ -1,4 +1,3 @@
-#include "pch.h"
 #include "scan_mem.h"
 
 /*

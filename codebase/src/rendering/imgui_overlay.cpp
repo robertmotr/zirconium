@@ -1,8 +1,14 @@
-#include "pch.h"
 #include "render.h"
 
-bool initialized = false; // check if ImGui is initialized
-ImGuiIO* io = nullptr; // stored globally to reduce overhead inside renderOverlay
+namespace renderVars {
+    bool                                                initialized = false; // check if ImGui is initialized
+    ImGuiIO*                                            io = nullptr; // stored globally to reduce overhead inside renderOverlay
+    ImGuiContext*                                       ctx = nullptr; // stored globally to reduce overhead inside renderOverlay
+    LPDIRECT3DDEVICE9                                   g_pDevice = nullptr; 
+    HWND                                                g_hwnd = nullptr; // background window we're running on top of
+    RECT                                                rect = {}; // used for dynamically checking if wnd was resized
+    D3DPRESENT_PARAMETERS*                              g_pD3DPP = nullptr; 
+}
 
 /*
 * Styles the ImGui overlay.
@@ -60,32 +66,29 @@ void __stdcall setImGuiStyle() {
     colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.20f, 0.20f, 0.20f, 0.35f);
 }
 
-/*
-* Initializes the ImGui overlay inside our hook.
-* @return S_OK if successful, E_FAIL otherwise
-*/
 HRESULT __stdcall initOverlay(LPDIRECT3DDEVICE9 pDevice) {
     LOG("Initializing ImGui...");
-    initialized = true;
+    renderVars::initialized = true;
 
     LOG("Creating ImGui context...");
-    setImGuiStyle();
-    ImGui::CreateContext();
-    io = &ImGui::GetIO();
-    io->ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-    io->WantCaptureKeyboard = true;
-    io->WantCaptureMouse = true;
-
-    HRESULT hr;
-    D3DDEVICE_CREATION_PARAMETERS cparams;
-    hr = pDevice->GetCreationParameters(&cparams);
-    if (FAILED(hr)) {
-        LOG("Failed to get device creation parameters.");
+    renderVars::ctx = ImGui::CreateContext();
+    if (!renderVars::ctx) {
+        LOG("Failed to create ImGui context.");
         return E_FAIL;
     }
 
+    ImGui::SetCurrentContext(renderVars::ctx);
+
+    LOG("Setting ImGui style...");
+    setImGuiStyle();
+
+    renderVars::io = &ImGui::GetIO();
+    renderVars::io->ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    renderVars::io->WantCaptureKeyboard = true;
+    renderVars::io->WantCaptureMouse = true;
+
     // init backend with correct window handle
-    if (!ImGui_ImplWin32_Init(cparams.hFocusWindow)) {
+    if (!ImGui_ImplWin32_Init(renderVars::g_hwnd)) {
         LOG("ImGui_ImplWin32_Init failed.");
         return E_FAIL;
     }
@@ -106,6 +109,7 @@ void __stdcall renderContent() {
     if (ImGui::Button("Close")) {
         exit(0);
     }
+    ImGui::End();
 }
 
 /*
@@ -114,8 +118,8 @@ void __stdcall renderContent() {
 void __stdcall renderOverlay(LPDIRECT3DDEVICE9 pDevice) {
 
     HRESULT hr;
-    if (!initialized) {
-		hr = initOverlay(pDevice);
+    if (!renderVars::initialized) {
+        hr = initOverlay(pDevice);
         if (FAILED(hr)) {
             LOG("Failed to initialize ImGui overlay.");
             return;
@@ -123,21 +127,26 @@ void __stdcall renderOverlay(LPDIRECT3DDEVICE9 pDevice) {
         LOG("Initialized ImGui overlay.");
     }
 
+    GetClientRect(renderVars::g_hwnd, &renderVars::rect);
+    renderVars::io->DisplaySize = ImVec2((float)(renderVars::rect.right - renderVars::rect.left),
+        (float)(renderVars::rect.bottom - renderVars::rect.top));
+
+#ifndef _MENU_ONLY
     // this needs to be done every frame in order to have responsive input (e.g. for buttons to work when clicked)
-    io->MouseDown[0] = GetAsyncKeyState(VK_LBUTTON) & 0x8000;
-    io->MouseDown[1] = GetAsyncKeyState(VK_RBUTTON) & 0x8000;
-    io->MouseDown[2] = GetAsyncKeyState(VK_MBUTTON) & 0x8000;
+    // only applicable for actual DLL inside cheat, for menu testing this breaks things
+    renderVars::io->MouseDown[0] = GetAsyncKeyState(VK_LBUTTON) & 0x8000;
+    renderVars::io->MouseDown[1] = GetAsyncKeyState(VK_RBUTTON) & 0x8000;
+    renderVars::io->MouseDown[2] = GetAsyncKeyState(VK_MBUTTON) & 0x8000;
+#endif
 
     ImGui_ImplDX9_NewFrame();
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
 
-	// buttons, text, etc.
+    // buttons, text, etc.
     renderContent();
 
-    ImGui::End();
     ImGui::EndFrame();
     ImGui::Render();
     ImGui_ImplDX9_RenderDrawData(ImGui::GetDrawData());
 }
-

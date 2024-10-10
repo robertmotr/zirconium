@@ -1,7 +1,20 @@
 #pragma once
 
-extern bool initialized; // flag to check if ImGui is initialized
-extern ImGuiIO* io; // stored globally to reduce overhead inside renderOverlay
+#include "pch.h"
+
+namespace renderVars {
+	extern bool initialized; // flag to check if ImGui is initialized
+	extern ImGuiIO* io; // stored globally to reduce overhead inside renderOverlay
+	extern ImGuiContext* ctx;
+	extern LPDIRECT3DDEVICE9 g_pDevice;
+	extern HWND g_hwnd;
+	extern RECT rect;
+	extern D3DPRESENT_PARAMETERS* g_pD3DPP;
+}
+
+// https://github.com/ocornut/imgui/blob/master/backends/imgui_impl_win32.cpp see line 571
+// need to forward declare this for some reason
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 /*
 * Initializes ImGui overlay inside our hook.
@@ -13,7 +26,6 @@ HRESULT __stdcall initOverlay(LPDIRECT3DDEVICE9 pDevice);
 * Called every frame within renderOverlay() for the ImGui components displayed within the menu.
 */
 void __stdcall renderContent();
-
 
 /*
 * Called every frame to render the ImGui overlay from inside our hook.
