@@ -232,7 +232,6 @@ void tableSortHelper() {
     }
 }
 
-
 /*
 * Helper fn for sorting within the memory table.
 * @param operand a of std::variant MEM_TYPES
