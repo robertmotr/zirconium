@@ -142,6 +142,7 @@
       <ForcedIncludeFiles>pch.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -220,6 +221,7 @@
     <ClCompile Include="src\dll_main.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='MenuOnly|Win32'">Use</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="src\globals.cpp" />
     <ClCompile Include="src\hooks\vmt_hook.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='MenuOnly|Win32'">Use</PrecompiledHeader>
     </ClCompile>
@@ -246,6 +248,7 @@
     <ClInclude Include="external\imgui\imstb_textedit.h" />
     <ClInclude Include="external\imgui\imstb_truetype.h" />
     <ClInclude Include="external\imgui\misc\cpp\imgui_stdlib.h" />
+    <ClInclude Include="includes\globals.h" />
     <ClInclude Include="includes\hooks\vmt_hook.h" />
     <ClInclude Include="includes\pch.h" />
     <ClInclude Include="includes\rendering\imgui_style.h" />

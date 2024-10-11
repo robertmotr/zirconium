@@ -38,3 +38,18 @@ uintptr_t patternScan(uintptr_t startAddress, size_t regionSize, const uint8_t* 
 
     return NULL;
 }
+
+/*
+* Finds complete address given a module name and offset, i.e "client.dll" + 0x1234 = 0x12345678.
+* @param moduleName The name of the module to search for.
+* @param offset The offset from the module base address.
+* @return The final calculated address.
+*/
+uintptr_t resolveModuleAddress(const char* moduleName, const uintptr_t offset) {
+    uintptr_t moduleBase = reinterpret_cast<uintptr_t>(GetModuleHandleA(moduleName));
+	if (!moduleBase) {
+        LOG("getting module base failed!");
+		return NULL;
+	}
+	return moduleBase + offset;
+}

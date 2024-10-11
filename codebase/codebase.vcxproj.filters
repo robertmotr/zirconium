@@ -63,6 +63,9 @@
     <ClCompile Include="external\imgui\backends\imgui_impl_win32.cpp">
       <Filter>Source Files\imgui</Filter>
     </ClCompile>
+    <ClCompile Include="src\globals.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="includes\utils\logger.h">
@@ -109,6 +112,9 @@
     </ClInclude>
     <ClInclude Include="external\imgui\misc\cpp\imgui_stdlib.h">
       <Filter>Header Files\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\globals.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

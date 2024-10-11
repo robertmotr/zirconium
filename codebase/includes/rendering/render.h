@@ -1,20 +1,17 @@
 #pragma once
 
 #include "pch.h"
-
-namespace renderVars {
-	extern bool initialized; // flag to check if ImGui is initialized
-	extern ImGuiIO* io; // stored globally to reduce overhead inside renderOverlay
-	extern ImGuiContext* ctx;
-	extern LPDIRECT3DDEVICE9 g_pDevice;
-	extern HWND g_hwnd;
-	extern RECT rect;
-	extern D3DPRESENT_PARAMETERS* g_pD3DPP;
-}
+#include "globals.h"
 
 // https://github.com/ocornut/imgui/blob/master/backends/imgui_impl_win32.cpp see line 571
 // need to forward declare this for some reason
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
+void initMemTable();
+
+void tableSortHelper();
+
+int compareValues(const MEM_TYPES& a, const MEM_TYPES& b);
 
 /*
 * Initializes ImGui overlay inside our hook.
@@ -37,4 +34,6 @@ void __stdcall renderOverlay(LPDIRECT3DDEVICE9 pDevice);
 * credits to https://github.com/adobe/imgui/blob/master/imgui_spectrum.h
 */
 void __stdcall setImGuiStyle();
+
+void showMemoryTable();
 

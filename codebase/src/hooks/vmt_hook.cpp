@@ -32,7 +32,7 @@ volatile LPDIRECT3DDEVICE9      pDevice = nullptr; // IDirect3DDevice9 pointer b
 */
 __declspec(naked) void __stdcall hkEndScene() {
 
-    // asm instructions documented for clarity
+    // instructions documented for clarity
 
     __asm {
         pushad // push all general purpose registers onto stack

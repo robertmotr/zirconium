@@ -49,7 +49,7 @@
         wc.lpszClassName = CLASS_NAME;
 
         RegisterClass(&wc);
-        HWND hwnd = CreateWindowExW(0, CLASS_NAME, L"DirectX 9 Example", // Changed to CreateWindowExW for wide character string
+        HWND hwnd = CreateWindowExW(0, CLASS_NAME, L"DirectX 9 Example", 
             WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT,
             1920, 1080, nullptr, nullptr, hInstance, nullptr);
 
@@ -95,6 +95,12 @@
                 DispatchMessage(&msg);
             }
 
+            if (renderVars::g_pD3DPP->Windowed) {
+                GetClientRect(hwnd, &renderVars::rect);
+                renderVars::g_pD3DPP->BackBufferWidth = renderVars::rect.right - renderVars::rect.left;
+                renderVars::g_pD3DPP->BackBufferHeight = renderVars::rect.bottom - renderVars::rect.top;
+            }
+
             ptrDevice->Clear(0, nullptr, D3DCLEAR_TARGET, D3DCOLOR_XRGB(0, 0, 0), 1.0f, 0);
             ptrDevice->BeginScene();
 
@@ -116,14 +122,20 @@
         }
     }
 
-    // Window Procedure
     LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
             return 0;
 
         switch (msg) {
         case WM_SIZE:
-            // TODO: size change
+            if (renderVars::g_pDevice != nullptr && wParam != SIZE_MINIMIZED) {
+                renderVars::g_pD3DPP->BackBufferWidth = LOWORD(lParam);
+                renderVars::g_pD3DPP->BackBufferHeight = HIWORD(lParam);
+                renderVars::rect = { 0, 0, (LONG)renderVars::g_pD3DPP->BackBufferWidth, (LONG)renderVars::g_pD3DPP->BackBufferHeight };
+                renderVars::g_pDevice->Reset(renderVars::g_pD3DPP);
+                ImGui_ImplDX9_InvalidateDeviceObjects();
+                ImGui_ImplDX9_CreateDeviceObjects();
+            }
             return 0;
         case WM_DESTROY:
             PostQuitMessage(0);
