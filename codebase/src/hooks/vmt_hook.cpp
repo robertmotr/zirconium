@@ -31,6 +31,7 @@ volatile LPDIRECT3DDEVICE9      pDevice = nullptr; // IDirect3DDevice9 pointer b
         credits to the UC posts I've researched and the original author.
 */
 __declspec(naked) void __stdcall hkEndScene() {
+    LOG("hkEndScene called.");
 
     // instructions documented for clarity
 
@@ -126,6 +127,8 @@ void __stdcall startThread(HMODULE hModule) {
         return;
     }
 
+	// now start imgui overlay
+
     //LOG("Hook installed successfully. Waiting for VK_END to unhook...");
     //while (!GetAsyncKeyState(VK_END)) {
     //    Sleep(1);
@@ -135,6 +138,6 @@ void __stdcall startThread(HMODULE hModule) {
     // Unhook and cleanup
     // TODO: Implement unhooking
 
-    FreeLibraryAndExitThread(hModule, 0);
+    /*FreeLibraryAndExitThread(hModule, 0);*/
     return;
 }

@@ -19,6 +19,8 @@
 #include <cstdint>
 #include <sstream>
 #include <variant>
+#include <cmath>
+#include <math.h>
 
 // link dx9 stuff
 #pragma comment(lib, "d3d9.lib")

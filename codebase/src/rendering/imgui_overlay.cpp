@@ -295,42 +295,27 @@ void showMemoryTable() {
                 ImGui::BeginTooltip();
                 ImGui::Text("Memory at 0x%08X:", entry.addr);
 
-                unsigned char buffer[16] = {};
-                bool canReadMemory = false;
+                static unsigned char buffer[128] = {};
 
 #ifdef _MENU_ONLY
                 // In test mode, fill buffer with placeholder data
-                for (int i = 0; i < 16; ++i) {
+                for (int i = 0; i < 128; ++i) {
                     buffer[i] = static_cast<unsigned char>(i);
                 }
-                canReadMemory = true;
 #else
-                // In game mode, attempt to read memory
-                __try {
-                    memcpy(buffer, reinterpret_cast<void*>(entry.addr), sizeof(buffer));
-                    canReadMemory = true;
-                }
-                __except (EXCEPTION_EXECUTE_HANDLER) {
-                    canReadMemory = false;
-                }
+                memcpy(buffer, reinterpret_cast<void*>(entry.addr), sizeof(buffer));
 #endif
+                ImGui::Text("Hex Dump:");
+                ImGui::BeginTable("HexDump", 8);
+                for (int i = 0; i < 128; ++i) {
+                    if (i % 8 == 0)
+                        ImGui::TableNextRow();
 
-                if (canReadMemory) {
-                    ImGui::Text("Hex Dump:");
-                    ImGui::BeginTable("HexDump", 8);
-                    for (int i = 0; i < 16; ++i) {
-                        if (i % 8 == 0)
-                            ImGui::TableNextRow();
-
-                        ImGui::TableSetColumnIndex(i % 8);
-                        ImGui::Text("%02X", buffer[i]);
-                    }
-                    ImGui::EndTable();
-                }
-                else {
-                    ImGui::Text("Cannot read memory at this address.");
+                    ImGui::TableSetColumnIndex(i % 8);
+                    ImGui::Text("%02X", buffer[i]);
                 }
 
+                ImGui::EndTable();
                 ImGui::EndTooltip();
             }
 
