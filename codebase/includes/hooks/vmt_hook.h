@@ -1,13 +1,9 @@
 #pragma once
 
+#include "pch.h"
 #include "render.h"
 #include "scan_mem.h"
-
-#define                                     ENDSCENE_INDEX 42 // index of EndScene() in IDirect3DDevice9 vtable
-
-extern DWORD*								oEndScene; // original EndScene function address
-extern DWORD*								vtable; // IDirect3DDevice9 virtual method table
-extern volatile LPDIRECT3DDEVICE9           pDevice; // IDirect3DDevice9 pointer being used in the target application
+#include "globals.h"
 
 /*
     Hooked EndScene function for DX9 rendering pipeline.

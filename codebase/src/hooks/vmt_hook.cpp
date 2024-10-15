@@ -1,9 +1,4 @@
-#include "pch.h"
 #include "vmt_hook.h"
-
-DWORD*                          oEndScene = nullptr; // original EndScene function address
-DWORD*                          vtable = nullptr; // IDirect3DDevice9 virtual method table
-volatile LPDIRECT3DDEVICE9      pDevice = nullptr; // IDirect3DDevice9 pointer being used in the target application
 
 /*
     Hooked EndScene function for DX9 rendering pipeline.
@@ -41,16 +36,16 @@ __declspec(naked) void __stdcall hkEndScene() {
         push esi // push esi onto stack
 
         mov esi, dword ptr ss : [esp + 0x2c] // gets the IDirect3DDevice9 pointer from the stack
-        mov pDevice, esi // store the pointer in a global variable
+        mov hookVars::pDevice, esi // store the pointer in a global variable
     }
 
-    renderOverlay(pDevice);
+    renderOverlay(hookVars::pDevice);
 
     __asm {
         pop esi // pop esi off stack
         popfd // pop flags off stack
         popad // pop all general purpose registers off stack
-        jmp oEndScene // jump back to the address stored in the oEndScene variable
+        jmp hookVars::oEndScene // jump back to the address stored in the oEndScene variable
     }
 }
 
@@ -62,8 +57,10 @@ __declspec(naked) void __stdcall hkEndScene() {
 HRESULT __stdcall findVMT() {
     LOG("Attempting to find VMT...");
     DWORD hD3D = NULL;
+
     while (!hD3D) hD3D = (DWORD)GetModuleHandle(L"d3d9.dll");
     LOG("d3d9.dll found.");
+
     // pointer chain:
     // d3d9.dll -> IDirect3D9 -> IDirect3DDevice9 -> IDirect3DDevice9 VMT
     // honestly i have no idea how this pattern was found, but it works, credits to the original author
@@ -72,8 +69,9 @@ HRESULT __stdcall findVMT() {
         LOG("Failed to find IDirect3DDevice9 pointer.");
         return E_FAIL;
     }
+
     LOG("IDirect3DDevice9 pointer found.");
-    memcpy(&vtable, (void*)(PPPDevice + 2), 4);
+    memcpy(&hookVars::vtable, (void*)(PPPDevice + 2), 4);
     return S_OK;
 }
 
@@ -83,7 +81,7 @@ HRESULT __stdcall findVMT() {
     * @return S_OK if successful, E_FAIL otherwise.
 */
 HRESULT __stdcall installHook() {
-    if (!vtable) {
+    if (hookVars::vtable == nullptr) {
         LOG("VMT not found.");
         return E_FAIL;
     }
@@ -92,13 +90,13 @@ HRESULT __stdcall installHook() {
 
     // overwrite vtable entry with our hook
     DWORD oldProtect;
-    if (VirtualProtect(&vtable[ENDSCENE_INDEX], sizeof(DWORD), PAGE_EXECUTE_READWRITE, &oldProtect)) {
-        // save original EndScene function pointer
-        oEndScene = (DWORD*)vtable[ENDSCENE_INDEX];
-        vtable[ENDSCENE_INDEX] = (DWORD)&hkEndScene;
-        VirtualProtect(&vtable[ENDSCENE_INDEX], sizeof(DWORD), oldProtect, &oldProtect);
+    if (VirtualProtect(&hookVars::vtable[ENDSCENE_INDEX], sizeof(DWORD), PAGE_EXECUTE_READWRITE, &oldProtect)) {
+        // save original EndScene fn ptr
+        hookVars::oEndScene = (DWORD*)hookVars::vtable[ENDSCENE_INDEX];
+        hookVars::vtable[ENDSCENE_INDEX] = (DWORD)&hkEndScene;
+        VirtualProtect(&hookVars::vtable[ENDSCENE_INDEX], sizeof(DWORD), oldProtect, &oldProtect);
         LOG("Successfully installed hook.");
-        // dx9 endscene calls should now be redirected to preHkEndScene
+        // dx9 endscene calls should now be redirected to hkEndScene
     }
     else {
         LOG("Failed to install hook.");
@@ -126,8 +124,6 @@ void __stdcall startThread(HMODULE hModule) {
         LOG("Failed to install hook.");
         return;
     }
-
-	// now start imgui overlay
 
     //LOG("Hook installed successfully. Waiting for VK_END to unhook...");
     //while (!GetAsyncKeyState(VK_END)) {

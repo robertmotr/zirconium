@@ -1,8 +1,6 @@
 #pragma once
 
-#include <cstdint>
-
-#define PE_MODULE_NAME "plutonium-bootstrapper-win32.exe"
+#include "pch.h"
 
 /*
 * Compares a pattern to a specified memory region.

@@ -2,6 +2,9 @@
 
 #include "pch.h"
 
+#define PE_MODULE_NAME "plutonium-bootstrapper-win32.exe"
+#define ENDSCENE_INDEX 42 // index of EndScene() in IDirect3DDevice9 vtable
+
 using MEM_TYPES = std::variant<unsigned int, float, std::string>;
 
 #ifdef _MENU_ONLY
@@ -65,4 +68,10 @@ namespace guiVars {
 	extern ImGuiTabBarFlags tab_bar_flags;
 	extern unsigned int memory_table_idx;
 	extern unsigned int	struct_view_idx;
+}
+
+namespace hookVars {
+	extern DWORD* oEndScene; // original DX9 end scene fn address
+	extern DWORD* vtable; // IDirect3DDevice9 virtual method table
+	extern volatile LPDIRECT3DDEVICE9 pDevice; // IDirect3DDevice9 pointer being used in the target application
 }

@@ -25,3 +25,9 @@ namespace guiVars {
 	unsigned int                                        memory_table_idx = 0;
 	unsigned int                                        struct_view_idx = 0;
 }
+
+namespace hookVars {
+	DWORD*												oEndScene = nullptr; // original EndScene function address
+	DWORD*												vtable = nullptr; // IDirect3DDevice9 virtual method table
+	volatile LPDIRECT3DDEVICE9							pDevice = nullptr; // IDirect3DDevice9 pointer being used in the target application
+}
