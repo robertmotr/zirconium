@@ -1,4 +1,4 @@
-#include "vmt_hook.h"
+#include "hook.h"
 
 /*
     Hooked EndScene function for DX9 rendering pipeline.
@@ -114,7 +114,16 @@ HRESULT __stdcall installHook() {
 void __stdcall startThread(HMODULE hModule) {
     AllocConsole();
     freopen_s(reinterpret_cast<FILE**>(stdout), "CONOUT$", "w", stdout);
-    LOG("Hook thread started.");
+    LOG("Hook thread started, checking process details.");
+
+    ULONG64 bitMask = 0;
+    if (GetProcessMitigationPolicy(GetCurrentProcess(), ProcessMitigationOptionsMask, &bitMask, sizeof(ULONG64)) == FALSE) {
+        LOG("ERROR: Process mitigation policy call failed.");
+        LOG("ERROR: Error code: ", dwordErrorToString(GetLastError()));
+        return;
+    }
+
+    LOG("Process mitigation options:\n", mitMaskToString(bitMask));
 
     if (FAILED(findVMT())) {
         LOG("Failed to find VMT.");
@@ -125,6 +134,7 @@ void __stdcall startThread(HMODULE hModule) {
         return;
     }
 
+    // TODO
     //LOG("Hook installed successfully. Waiting for VK_END to unhook...");
     //while (!GetAsyncKeyState(VK_END)) {
     //    Sleep(1);

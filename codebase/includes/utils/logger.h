@@ -5,7 +5,28 @@
 #include <Windows.h>
 #include <d3d9.h>
 
-std::string __stdcall HResultToString(HRESULT hr);
+/*
+* Converts an HRESULT error code to a human-readable std::string.
+ *
+ * @param hr The HRESULT error code to convert.
+ * @return std::string representation of the error code.
+*/
+std::string __stdcall HresultErrorToString(HRESULT hr);
+
+/*
+* Converts a DWORD error code (such as from GetLastError()) to a human-readable std::string.
+ *
+ * @param dw The DWORD error code to convert.
+ * @return std::string representation of the error code.
+*/
+std::string __stdcall dwordErrorToString(DWORD dw);
+
+/*
+* Converts a ULONG64 mask returned by GetProcessMitigation to a human-readable string.
+* @param: mask ULONG64 mask to convert.
+* @return std::string representation of the policies in place.
+*/
+std::string __stdcall mitMaskToString(ULONG64& mask);
 
 // Base case: only one argument left 
 template<typename T>

@@ -1,4 +1,4 @@
-#include "vmt_hook.h"
+#include "hook.h"
 
 #ifndef _MENU_ONLY // then its either Release/Debug which has the full DLL	
 	BOOL __stdcall DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved) {

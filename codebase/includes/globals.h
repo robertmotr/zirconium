@@ -72,6 +72,5 @@ namespace guiVars {
 
 namespace hookVars {
 	extern DWORD* oEndScene; // original DX9 end scene fn address
-	extern DWORD* vtable; // IDirect3DDevice9 virtual method table
 	extern volatile LPDIRECT3DDEVICE9 pDevice; // IDirect3DDevice9 pointer being used in the target application
 }

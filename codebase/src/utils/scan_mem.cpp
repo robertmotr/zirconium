@@ -53,3 +53,28 @@ uintptr_t resolveModuleAddress(const char* moduleName, const uintptr_t offset) {
 	}
 	return moduleBase + offset;
 }
+
+/*
+* Smart function for replacing len bytes from src at dst.
+* @param src Pointer to an array of bytes that will replace dst.
+* @param dst Destination address to be patched with.
+* @param len # of bytes to replace
+* @return true on success, false otherwise. See logging messages for details
+*/
+bool patchBytes(BYTE *src, BYTE *dst, unsigned int len) {
+    if (src == nullptr) {
+        LOG("ERROR: Provided nullptr as src argument to patchBytes.");
+        return false;
+    }
+    else if (dst == nullptr) {
+        LOG("ERROR: Provided nullptr as dst argument to patchBytes.");
+    }
+
+    if (len == 0) {
+        LOG("ERROR: Provided 0 as argument to length of bytes to patch.");
+        return false;
+    }
+
+    PMEMORY_BASIC_INFORMATION srcDetails;
+    PMEMORY_BASIC_INFORMATION dstDetails;
+}

@@ -30,3 +30,12 @@ uintptr_t patternScan(uintptr_t startAddress, size_t regionSize, const uint8_t* 
 * @return The final calculated address.
 */
 uintptr_t resolveModuleAddress(const char *moduleName, const uintptr_t offset);
+
+/*
+* Smart function for replacing len bytes from src at dst.
+* @param src Pointer to an array of bytes that will replace dst.
+* @param dst Destination address to be patched with.
+* @param len # of bytes to replace
+* @return true on success, false otherwise. See logging messages for details
+*/
+bool patchBytes(BYTE* src, BYTE* dst, unsigned int len);
