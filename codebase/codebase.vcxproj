@@ -227,7 +227,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='MenuOnly|Win32'">Use</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="src\globals.cpp" />
-    <ClCompile Include="src\hooks\vmt_hook.cpp">
+    <ClCompile Include="src\hooks\hook.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='MenuOnly|Win32'">Use</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="src\pch.cpp">
@@ -254,7 +254,7 @@
     <ClInclude Include="external\imgui\imstb_truetype.h" />
     <ClInclude Include="external\imgui\misc\cpp\imgui_stdlib.h" />
     <ClInclude Include="includes\globals.h" />
-    <ClInclude Include="includes\hooks\vmt_hook.h" />
+    <ClInclude Include="includes\hooks\hook.h" />
     <ClInclude Include="includes\pch.h" />
     <ClInclude Include="includes\rendering\imgui_style.h" />
     <ClInclude Include="includes\rendering\render.h" />
