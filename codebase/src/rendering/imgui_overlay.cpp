@@ -449,10 +449,8 @@ void __stdcall renderContent() {
                 Text("Aim key:");
                 // TODO 
 
-                Text("FOV:");
-                SliderInt("0 to 360 deg", &guiVars::aim_fov, 0, 360);
-
-                Text("Lock speed:");
+                SliderInt("FOV", &guiVars::aim_fov, 0, 360);
+                SliderFloat("Lock speed", &guiVars::lock_speed, 0.0f, 1.0f);
 
                 Text("Aim bone");
 
