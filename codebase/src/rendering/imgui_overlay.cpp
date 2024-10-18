@@ -436,36 +436,46 @@ void __stdcall renderContent() {
     Begin("Zirconium", nullptr, 0);
 	if (BeginTabBar("##tabs", guiVars::tab_bar_flags)) {
 		if (BeginTabItem("Aimbot")) {
-            if (Checkbox("Aimbot", &guiVars::aimbot_checkbox)) {
-                Text("Lock to:");
-                RadioButton("Nearest", &guiVars::aimbot_radio_btn_sel);
-                RadioButton("Fastest", &guiVars::aimbot_radio_btn_sel);
-                RadioButton("Slowest", &guiVars::aimbot_radio_btn_sel);
-                RadioButton("Lowest HP", &guiVars::aimbot_radio_btn_sel);
-                RadioButton("Highest HP", &guiVars::aimbot_radio_btn_sel);
+            Checkbox("Aimbot", &guiVars::aimbot_checkbox);
+            if (guiVars::aimbot_checkbox) {
+                Text("Lock condition:");
+                RadioButton("Nearest", &guiVars::aimbot_radio_btn_sel, 0);
+                RadioButton("Fastest", &guiVars::aimbot_radio_btn_sel, 1);
+                RadioButton("Slowest", &guiVars::aimbot_radio_btn_sel, 2);
+                RadioButton("Lowest HP", &guiVars::aimbot_radio_btn_sel, 3);
+                RadioButton("Highest HP", &guiVars::aimbot_radio_btn_sel, 4);
 
                 Spacing();
 
                 Text("Aim key:");
-                // TODO 
+                Text("(TODO)");
+                Spacing();
 
+                // TODO 
                 SliderInt("FOV", &guiVars::aim_fov, 0, 360);
                 SliderFloat("Lock speed", &guiVars::lock_speed, 0.0f, 1.0f);
 
-                Text("Aim bone");
+                Text("Aim bone (TODO)");
+                Spacing();
 
-                Text("Lock until:");
+                Text("Lock until:"); SameLine();
                 if (!guiVars::lock_until_eliminated) {
-                    Button("Lock condition updates");
+                    if (Button("Lock condition updates")) {
+                        guiVars::lock_until_eliminated = !guiVars::lock_until_eliminated;
+                    }
                 }
                 else {
-                    Button("Eliminated");
+                    if (Button("Eliminated")) {
+                        guiVars::lock_until_eliminated = !guiVars::lock_until_eliminated;
+                    }
                 }
 
+                Spacing();
+
                 Text("Aim mode:");
-                RadioButton("Silent", &guiVars::aim_preset);
-                RadioButton("Legit", &guiVars::aim_preset);
-                RadioButton("Rage", &guiVars::aim_preset);
+                RadioButton("Silent", &guiVars::aim_preset, 0);
+                RadioButton("Legit", &guiVars::aim_preset, 1);
+                RadioButton("Rage", &guiVars::aim_preset, 2);
 
 
             }
