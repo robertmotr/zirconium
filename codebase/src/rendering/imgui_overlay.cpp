@@ -450,6 +450,7 @@ void __stdcall renderContent() {
                 // TODO 
 
                 Text("FOV:");
+                SliderInt("0 to 360 deg", &guiVars::aim_fov, 0, 360);
 
                 Text("Lock speed:");
 
@@ -462,6 +463,11 @@ void __stdcall renderContent() {
                 else {
                     Button("Eliminated");
                 }
+
+                Text("Aim mode:");
+                RadioButton("Silent", &guiVars::aim_preset);
+                RadioButton("Legit", &guiVars::aim_preset);
+                RadioButton("Rage", &guiVars::aim_preset);
 
 
             }

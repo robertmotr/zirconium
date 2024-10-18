@@ -52,6 +52,10 @@ struct memoryTableEntry {
 	std::string structName;
 };
 
+namespace gameVars {
+    extern std::vector<std::string> Bones;
+};
+
 // for ImGui setup
 namespace renderVars {
 	extern bool initialized; // check if ImGui is initialized
@@ -73,6 +77,9 @@ namespace guiVars {
     extern bool aimbot_checkbox;
     extern int aimbot_radio_btn_sel;
     extern bool lock_until_eliminated;
+    extern int aim_preset;
+    extern int aim_fov;
+    extern float lock_speed;
 }
 
 namespace hookVars {

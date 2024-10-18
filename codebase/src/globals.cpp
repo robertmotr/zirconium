@@ -1,6 +1,27 @@
 #include "globals.h" 
 #include "scan_mem.h"
 
+namespace gameVars {
+	std::vector<std::string> Bones = {
+	"BONE_ROOT",
+	"BONE_SPINE1",
+	"BONE_SPINE2",
+	"BONE_SPINE3",
+	"BONE_NECK",
+	"BONE_HEAD",
+	"BONE_RIGHT_CLAVICLE",
+	"BONE_RIGHT_SHOULDER",
+	"BONE_RIGHT_ELBOW",
+	"BONE_RIGHT_HAND",
+	"BONE_LEFT_CLAVICLE",
+	"BONE_LEFT_SHOULDER",
+	"BONE_LEFT_ELBOW",
+	"BONE_LEFT_HAND",
+	"BONE_RIGHT_THIGH",
+	"BONE_LEFT_THIGH"
+	};
+}
+
 // renderVars are global vars used for setting up imgui or imgui backend stuff
 namespace renderVars {
 	bool                            initialized = false; // check if ImGui is initialized
@@ -29,6 +50,9 @@ namespace guiVars {
 	int								aimbot_radio_btn_sel = 0;
 	bool							select_aim_key = false;
 	bool							lock_until_eliminated = false;
+	int								aim_preset = 0;
+	int								aim_fov = 0;
+	float							lock_speed;
 }
 
 namespace hookVars {
@@ -38,5 +62,5 @@ namespace hookVars {
 	BYTE							oldEndSceneAsm[OENDSCENE_NUM_BYTES_OVERWRITTEN] = {0};
 	BYTE							expectedEndSceneAsm[OENDSCENE_NUM_BYTES_OVERWRITTEN] = {0x6A, 0x14, // push 14h
 																								0xB8, 0x70, 0x47, 0x08, 0x10 }; // mov eax, offset loc_10084770
-	DWORD								relJmpAddrToHook = NULL;
+	DWORD							relJmpAddrToHook = NULL;
 }
