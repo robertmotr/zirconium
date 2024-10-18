@@ -78,7 +78,3 @@ bool patchBytes(BYTE *src, BYTE *dst, unsigned int len) {
     PMEMORY_BASIC_INFORMATION srcDetails;
     PMEMORY_BASIC_INFORMATION dstDetails;
 }
-
-__declspec(naked) DWORD getJmpDestination(DWORD eip, DWORD* fnAddr) {
-
-}

@@ -30,13 +30,9 @@ __declspec(naked) void __stdcall hkEndScene() {
 
     __asm {
         push 14h
-        mov eax, offset .text:loc_10084770
+        mov eax, 10084770
         // bytes overwritten for our jmp to this hook need to be executed here
         // this was determined through IDA 
-        push esi 
-        mov esi, eip 
-
-        pop esi 
 
         push esi
         mov esi, [ebp + 8] // determinmed by IDA that this ptr (dword ptr 8 local var) is pDevice
@@ -52,7 +48,7 @@ __declspec(naked) void __stdcall hkEndScene() {
     renderOverlay(pDevice);
     
     __asm {
-        jmp [oEndScene + 7] // resume rest of original endscene 
+        jmp [hookVars::oEndScene + 7] // resume rest of original endscene 
     }
 }
 
@@ -63,8 +59,9 @@ __declspec(naked) void __stdcall hkEndScene() {
 */
 bool __stdcall installHook() {
 
-    HMODULE hD3D;
-    while (!hD3D) hD3D = GetModuleHandle(L"d3d9.dll");
+    HMODULE hD3D = 0;
+    while (!hD3D) 
+        hD3D = GetModuleHandle(L"d3d9.dll");
 
     hookVars::oEndScene = GetProcAddress(hD3D, "EndScene");
     if (hookVars::oEndScene == NULL) {

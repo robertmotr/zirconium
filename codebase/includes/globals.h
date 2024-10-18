@@ -70,6 +70,9 @@ namespace guiVars {
 	extern ImGuiTabBarFlags tab_bar_flags;
 	extern unsigned int memory_table_idx;
 	extern unsigned int	struct_view_idx;
+    extern bool aimbot_checkbox;
+    extern int aimbot_radio_btn_sel;
+    extern bool lock_until_eliminated;
 }
 
 namespace hookVars {

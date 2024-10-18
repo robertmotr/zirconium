@@ -436,7 +436,35 @@ void __stdcall renderContent() {
     Begin("Zirconium", nullptr, 0);
 	if (BeginTabBar("##tabs", guiVars::tab_bar_flags)) {
 		if (BeginTabItem("Aimbot")) {
-			Text("Aimbot tab");
+            if (Checkbox("Aimbot", &guiVars::aimbot_checkbox)) {
+                Text("Lock to:");
+                RadioButton("Nearest", &guiVars::aimbot_radio_btn_sel);
+                RadioButton("Fastest", &guiVars::aimbot_radio_btn_sel);
+                RadioButton("Slowest", &guiVars::aimbot_radio_btn_sel);
+                RadioButton("Lowest HP", &guiVars::aimbot_radio_btn_sel);
+                RadioButton("Highest HP", &guiVars::aimbot_radio_btn_sel);
+
+                Spacing();
+
+                Text("Aim key:");
+                // TODO 
+
+                Text("FOV:");
+
+                Text("Lock speed:");
+
+                Text("Aim bone");
+
+                Text("Lock until:");
+                if (!guiVars::lock_until_eliminated) {
+                    Button("Lock condition updates");
+                }
+                else {
+                    Button("Eliminated");
+                }
+
+
+            }
 			EndTabItem();
 		}
 		if(BeginTabItem("ESP/visuals")) {
