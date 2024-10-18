@@ -33,18 +33,11 @@
 void __stdcall hkEndScene();
 
 /*
-* Finds the IDirect3DDevice9 pointer and the VMT. Address to VMT is then stored globally in vtable.
-    *
-    * @return S_OK if successful, E_FAIL otherwise.
-*/
-HRESULT __stdcall findVMT();
-
-/*
 * Installs the hook by overwriting the EndScene function pointer in the VMT with our hook.
     *
     * @return S_OK if successful, E_FAIL otherwise.
 */
-HRESULT __stdcall installHook();
+bool __stdcall installHook();
 
 /*
 * Starts a debug console and installs the hook. Waits for VK_END to close. This thread entry point is used to avoid blocking the main thread.
