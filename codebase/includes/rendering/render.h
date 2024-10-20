@@ -2,6 +2,7 @@
 
 #include "pch.h"
 #include "globals.h"
+#include "mem.h"
 
 // https://github.com/ocornut/imgui/blob/master/backends/imgui_impl_win32.cpp see line 571
 // need to forward declare this for some reason

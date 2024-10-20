@@ -1,8 +1,8 @@
 #include "globals.h" 
-#include "scan_mem.h"
+#include "mem.h"
 
 namespace gameVars {
-	std::vector<std::string> Bones = {
+	std::vector<std::string> bones = {
 	"BONE_ROOT",
 	"BONE_SPINE1",
 	"BONE_SPINE2",
@@ -56,11 +56,11 @@ namespace guiVars {
 }
 
 namespace hookVars {
-	FARPROC							oEndScene = nullptr; // original EndScene function address
+	DWORD							oEndScene = NULL; // original EndScene function address
 	volatile LPDIRECT3DDEVICE9		pDevice = nullptr; // IDirect3DDevice9 pointer being used in the target application
-	BYTE							newEndSceneAsm[OENDSCENE_NUM_BYTES_OVERWRITTEN] = {0};
-	BYTE							oldEndSceneAsm[OENDSCENE_NUM_BYTES_OVERWRITTEN] = {0};
-	BYTE							expectedEndSceneAsm[OENDSCENE_NUM_BYTES_OVERWRITTEN] = {0x6A, 0x14, // push 14h
-																								0xB8, 0x70, 0x47, 0x08, 0x10 }; // mov eax, offset loc_10084770
+	BYTE							newEndSceneAsm[TRAMPOLINE_SZ] = {0};
+	BYTE							oldEndSceneAsm[TRAMPOLINE_SZ] = {0};
+	BYTE							expectedEndSceneAsm[TRAMPOLINE_SZ] = {0x6A, 0x14, // push 14h
+																		  0xB8, 0x70, 0x47, 0x08, 0x10 }; // mov eax, offset loc_10084770
 	DWORD							relJmpAddrToHook = NULL;
 }

@@ -39,3 +39,17 @@ uintptr_t resolveModuleAddress(const char *moduleName, const uintptr_t offset);
 * @return true on success, false otherwise. See logging messages for details
 */
 bool patchBytes(BYTE* src, BYTE* dst, unsigned int len);
+
+/*
+* Executes a sequence of bytes.
+* @param bytes Pointer to bytes to execute
+* @param len The number of bytes to execute
+*/
+bool execBytes(BYTE* bytes, unsigned int len);
+
+/*
+* Writes n NOP (0x90) instructions to the specified address.
+* @param address The address to write the NOP instructions to.
+* @param n The number of NOP instructions to write.
+*/
+bool writeNOP(void* address, unsigned int n);

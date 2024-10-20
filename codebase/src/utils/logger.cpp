@@ -77,7 +77,7 @@ std::string __stdcall dwordErrorToString(DWORD dw) {
 * @return std::string representation of the policies in place.
 */
 std::string __stdcall mitMaskToString(ULONG64 & mask) {
-    std::string str;
+    std::string str; str.append("\n");
 
     if (mask & (1ULL << 0))
         str.append("- DEP (Data Execution Prevention) is enabled.\n");

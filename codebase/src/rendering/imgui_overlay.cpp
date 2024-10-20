@@ -1,6 +1,4 @@
 #include "render.h"
-#include "globals.h"
-#include "scan_mem.h"
 
 #ifdef _MENU_ONLY
 static PlaceholderData placeholderData = {};

@@ -1,4 +1,4 @@
-#include "scan_mem.h"
+#include "mem.h"
 
 /*
 * Compares a pattern to a specified memory region.
@@ -77,4 +77,84 @@ bool patchBytes(BYTE *src, BYTE *dst, unsigned int len) {
 
     PMEMORY_BASIC_INFORMATION srcDetails;
     PMEMORY_BASIC_INFORMATION dstDetails;
+    // TODO
+}
+
+/*
+* Writes n NOP (0x90) instructions to the specified address.
+* @param address The address to write the NOP instructions to.
+* @param n The number of NOP instructions to write.
+*/
+bool writeNOP(void* address, unsigned int n) {
+    if (address == nullptr) {
+		LOG("ERROR: Provided nullptr as address argument to writeNOP.");
+        return false;
+    }
+
+	if (n == 0) {
+		LOG("ERROR: Provided 0 as argument to number of NOP instructions to write.");
+		return false;
+	}
+
+	DWORD oldProtect;
+	if (!VirtualProtect(address, n, PAGE_EXECUTE_READWRITE, &oldProtect)) {
+		LOG("ERROR: Failed to change memory protection.");
+		LOG("ERROR CODE: ", dwordErrorToString(GetLastError()));
+		return false;
+	}
+
+	memset(address, 0x90, n);
+    return true;
+}
+
+/*
+* Executes a sequence of bytes.
+* @param bytes Pointer to bytes to execute
+* @param len The number of bytes to execute
+*/
+bool execBytes(BYTE* bytes, unsigned int len) {
+    if (bytes == nullptr) {
+        LOG("ERROR: Provided nullptr as bytes argument to execBytes.");
+        return false;
+    }
+
+    if (len == 0) {
+        LOG("ERROR: Provided 0 as argument to length of bytes to execute");
+        return false;
+    }
+
+    void* execMemory = VirtualAlloc(nullptr, len, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+    if (!execMemory) {
+        LOG("ERROR: Failed to allocate memory for execution.");
+        LOG("ERROR CODE: ", dwordErrorToString(GetLastError()));
+        return false;
+    }
+
+    memcpy(execMemory, bytes, len);
+
+    // save current CPU state (registers) first
+    __asm {
+        pushad   // Save all general-purpose registers
+        pushfd   // Save EFLAGS (flags register)
+    }
+
+    typedef void(*ExecFunc)();  // no parameters/return value expected
+    ExecFunc func = (ExecFunc)execMemory;
+	LOG("Executing bytes at address: ", execMemory);
+    func();
+    LOG("Executed bytes.");
+
+    // restore state
+    __asm {
+        popfd    // Restore EFLAGS
+        popad    // Restore all general-purpose registers
+    }
+
+    if (!VirtualFree(execMemory, 0, MEM_RELEASE)) {
+        LOG("ERROR: Failed to free memory after execution.");
+        LOG("ERROR CODE: ", dwordErrorToString(GetLastError()));
+        return false;
+    }
+
+    return true;
 }

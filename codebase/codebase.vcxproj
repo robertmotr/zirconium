@@ -239,7 +239,7 @@
     <ClCompile Include="src\utils\logger.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='MenuOnly|Win32'">Use</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="src\utils\scan_mem.cpp">
+    <ClCompile Include="src\utils\mem.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='MenuOnly|Win32'">Use</PrecompiledHeader>
     </ClCompile>
   </ItemGroup>
@@ -259,7 +259,7 @@
     <ClInclude Include="includes\rendering\imgui_style.h" />
     <ClInclude Include="includes\rendering\render.h" />
     <ClInclude Include="includes\utils\logger.h" />
-    <ClInclude Include="includes\utils\scan_mem.h" />
+    <ClInclude Include="includes\utils\mem.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

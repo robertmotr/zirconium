@@ -2,7 +2,7 @@
 
 #include "pch.h"
 #include "render.h"
-#include "scan_mem.h"
+#include "mem.h"
 #include "globals.h"
 
 /*
@@ -46,3 +46,11 @@ bool __stdcall installHook();
     * @param hModule The handle to the DLL module.
 */
 void __stdcall startThread(HMODULE hModule);
+
+/*
+* Exception handler for catching unhandled exceptions.
+	*
+	* @param ExceptionInfo The exception information.
+	* @return The exception code.
+*/
+LONG WINAPI ExceptionHandler(EXCEPTION_POINTERS* ExceptionInfo);

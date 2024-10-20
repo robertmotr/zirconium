@@ -30,13 +30,10 @@
     <ClCompile Include="src\utils\logger.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\utils\scan_mem.cpp">
+    <ClCompile Include="src\utils\mem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\rendering\imgui_overlay.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\hooks\vmt_hook.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="external\imgui\imgui.cpp">
@@ -66,21 +63,21 @@
     <ClCompile Include="src\globals.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\hooks\hook.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="includes\utils\logger.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="includes\utils\scan_mem.h">
+    <ClInclude Include="includes\utils\mem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="includes\rendering\imgui_style.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="includes\rendering\render.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="includes\hooks\vmt_hook.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="includes\pch.h">
@@ -114,6 +111,9 @@
       <Filter>Header Files\imgui</Filter>
     </ClInclude>
     <ClInclude Include="includes\globals.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\hooks\hook.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
