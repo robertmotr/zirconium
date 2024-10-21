@@ -49,11 +49,12 @@ __declspec(naked) void __stdcall hkEndScene() {
     static volatile LPDIRECT3DDEVICE9 pDevice = nullptr;
 
 	// execute the 7 bytes of what we've overwritten in the original EndScene to make sure theres no problems
+    // also exec another byte for the ret instr at the end
 	if (execBytes(hookVars::oldEndSceneAsm, TRAMPOLINE_SZ)) {
-		LOG("Executed newEndSceneAsm successfully.");
+		LOG("Executed oldEndSceneAsm successfully.");
 	}
 	else {
-		LOG("ERROR: Failed to execute newEndSceneAsm.");
+		LOG("ERROR: Failed to execute oldEndSceneAsm.");
 		// exit(-1);
 	}
 
@@ -199,43 +200,6 @@ bool __stdcall installHook() {
 
     memcpy(hookVars::oldEndSceneAsm, (void*)hookVars::oEndScene, TRAMPOLINE_SZ);
 
-    // sanity check that our bytes match disassembler output from IDA
-    /*for (unsigned int i = 0; i < TRAMPOLINE_SZ; i++) {
-        if (hookVars::oldEndSceneAsm[i] != hookVars::expectedEndSceneAsm[i]) {
-            LOG("ERROR: Getting fn addr for EndScene probably went wrong.");
-            LOG("ERROR: Expected", (void*)hookVars::expectedEndSceneAsm[i], 
-                       "but got ", (void*)hookVars::oldEndSceneAsm[i]);
-            
-            if(!VirtualProtect((void*)hookVars::oEndScene, TRAMPOLINE_SZ, protect, &protect)) {
-                LOG("ERROR: Restoring VirtualProtect perms after comparing EndScene bytes failed.");
-                LOG("ERROR: Got error", dwordErrorToString(GetLastError()));
-            }
-            return false;
-        }
-    }
-	LOG("Sanity check for oldEndSceneAsm == expectedEndSceneAsm passed.");*/
-    
-    // rel addr formula = absolute destination - (current EIP + jmp opcode sz)
-    hookVars::relJmpAddrToHook = (DWORD)&hkEndScene - ((DWORD)hookVars::oEndScene + 5);
-    hookVars::newEndSceneAsm[0] = 0xE9;
-    memcpy(hookVars::newEndSceneAsm + 1, &hookVars::relJmpAddrToHook, sizeof(DWORD));
-    // for jmp in x86 opcode is first byte 0xE9 to denote jmp, 
-    // and then next 4 bytes for rel addr to jump to
-
-    // fill the rest with NOPs to ensure valid instruction bounds 
-    // (2 NOPs, 1 byte each, opcode 0x90)
-    memset(hookVars::newEndSceneAsm + 5, 0x90, 2 * sizeof(BYTE));
-
-	memcpy((void*)hookVars::oEndScene, hookVars::newEndSceneAsm, TRAMPOLINE_SZ);
-
-    // sanity check oEndScene == newEndSceneAsm
-    for (unsigned int i = 0; i < TRAMPOLINE_SZ; i++) {
-        if (*((BYTE*)(hookVars::oEndScene)+i) != hookVars::newEndSceneAsm[i]) {
-            LOG("ERROR: oEndScene[", i, "] does not match newEndScene[", i, "] after patching.");
-            // exit(-1);
-        }
-    }
-	LOG("Sanity check for oEndScene == newEndSceneAsm passed.");
     LOG("Installed hook successfully");
     return true;
 }

@@ -123,7 +123,7 @@ bool execBytes(BYTE* bytes, unsigned int len) {
         return false;
     }
 
-    void* execMemory = VirtualAlloc(nullptr, len, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+    void* execMemory = VirtualAlloc(nullptr, len + 1, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
     if (!execMemory) {
         LOG("ERROR: Failed to allocate memory for execution.");
         LOG("ERROR CODE: ", dwordErrorToString(GetLastError()));
@@ -131,6 +131,7 @@ bool execBytes(BYTE* bytes, unsigned int len) {
     }
 
     memcpy(execMemory, bytes, len);
+    execMemory[len] = 0xC3; // add ret call at the end because this is a function
 
 	LOG("Executing bytes at address: ", execMemory);
     
