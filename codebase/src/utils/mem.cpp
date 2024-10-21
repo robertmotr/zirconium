@@ -132,23 +132,14 @@ bool execBytes(BYTE* bytes, unsigned int len) {
 
     memcpy(execMemory, bytes, len);
 
-    // save current CPU state (registers) first
-    __asm {
-        pushad   // Save all general-purpose registers
-        pushfd   // Save EFLAGS (flags register)
-    }
-
-    typedef void(*ExecFunc)();  // no parameters/return value expected
-    ExecFunc func = (ExecFunc)execMemory;
 	LOG("Executing bytes at address: ", execMemory);
-    func();
-    LOG("Executed bytes.");
-
-    // restore state
+    
     __asm {
-        popfd    // Restore EFLAGS
-        popad    // Restore all general-purpose registers
+		mov eax, execMemory
+		call eax
     }
+
+    LOG("Executed bytes.");
 
     if (!VirtualFree(execMemory, 0, MEM_RELEASE)) {
         LOG("ERROR: Failed to free memory after execution.");
