@@ -60,4 +60,5 @@ namespace hookVars {
 	volatile LPDIRECT3DDEVICE9		pDevice = nullptr; // IDirect3DDevice9 pointer being used in the target application
 	BYTE							oldEndSceneAsm[TRAMPOLINE_SZ] = {0};
 	DWORD							relJmpAddrToHook = NULL;
+	void*							execMem = nullptr;
 }

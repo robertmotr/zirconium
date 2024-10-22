@@ -21,6 +21,7 @@
 #include <variant>
 #include <cmath>
 #include <math.h>
+#include <TlHelp32.h>
 
 // link dx9 stuff
 #pragma comment(lib, "d3d9.lib")

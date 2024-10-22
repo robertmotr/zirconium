@@ -87,4 +87,5 @@ namespace hookVars {
 	extern volatile LPDIRECT3DDEVICE9 pDevice; // IDirect3DDevice9 pointer being used in the target application
     extern BYTE oldEndSceneAsm[];
     extern DWORD relJmpAddrToHook;
+	extern void* execMem;
 }

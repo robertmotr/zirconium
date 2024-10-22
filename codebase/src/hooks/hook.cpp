@@ -1,5 +1,7 @@
 #include "hook.h"
 
+BYTE testCode[] = { 0x90, 0x90 };
+
 /*
 * Exception handler for catching unhandled exceptions.
     *
@@ -46,19 +48,8 @@ LONG WINAPI ExceptionHandler(EXCEPTION_POINTERS* ExceptionInfo) {
 */
 __declspec(naked) void __stdcall hkEndScene() {
     LOG("Hooked EndScene called.");
-    static volatile LPDIRECT3DDEVICE9 pDevice = nullptr;
+    static LPDIRECT3DDEVICE9 pDevice = nullptr;
 
-	// execute the 7 bytes of what we've overwritten in the original EndScene to make sure theres no problems
-    // also exec another byte for the ret instr at the end
-	if (execBytes(hookVars::oldEndSceneAsm, TRAMPOLINE_SZ)) {
-		LOG("Executed oldEndSceneAsm successfully.");
-	}
-	else {
-		LOG("ERROR: Failed to execute oldEndSceneAsm.");
-		// exit(-1);
-	}
-
-	// our actual asm hook code to get the target application's device ptr
     __asm {
         push esi
         mov esi, [ebp + 8] // determinmed by IDA that this ptr (dword ptr 8 local var) is pDevice
@@ -66,14 +57,12 @@ __declspec(naked) void __stdcall hkEndScene() {
         pop esi
     }
 
-    if (pDevice == nullptr) {
-        LOG("ERROR: pDevice inside hkEndScene is nullptr.");
-        // exit(-1);
+    if (pDevice != nullptr) {
+        renderOverlay(pDevice);
     }
-    renderOverlay(pDevice);
-    
+
     __asm {
-        jmp [hookVars::oEndScene + 7] // resume rest of original endscene 
+        jmp [hookVars::execMem]
     }
 }
 
@@ -145,10 +134,14 @@ DWORD findEndScene() {
     * @return true if successful, false otherwise.
 */
 bool __stdcall installHook() {
+
+	pauseAllThreads();
+
 	hookVars::oEndScene = findEndScene();
     if (hookVars::oEndScene == NULL) {
         LOG("ERROR: GetProcAddress failed on getting EndScene.");
         LOG("ERROR: Got error ", dwordErrorToString(GetLastError()));
+        return false;
     }
 
 	// sanity check that we got the right address for EndScene
@@ -195,12 +188,50 @@ bool __stdcall installHook() {
     if (!VirtualProtect((void*)hookVars::oEndScene, TRAMPOLINE_SZ, PAGE_EXECUTE_READWRITE, &protect)) {
         LOG("ERROR: Changing read/write perms on EndScene address failed.");
         LOG("ERROR: Got error", dwordErrorToString(GetLastError()));
+        return false;
     }
 	LOG("VirtualProtect perms changed successfully on EndScene ASM.");
 
     memcpy(hookVars::oldEndSceneAsm, (void*)hookVars::oEndScene, TRAMPOLINE_SZ);
 
+	hookVars::execMem = VirtualAlloc(0, TRAMPOLINE_SZ + 5, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+	if (!hookVars::execMem) {
+		LOG("ERROR: VirtualAlloc failed.");
+		LOG("ERROR: Got error", dwordErrorToString(GetLastError()));
+		return false;
+	}
+
+	// write the original EndScene bytes to the executable memory
+	memcpy(hookVars::execMem, hookVars::oldEndSceneAsm, TRAMPOLINE_SZ);
+
+	// write the jmp back to the original EndScene after our hook
+	*(BYTE*)((BYTE*)hookVars::execMem + TRAMPOLINE_SZ) = 0xE9; // jmp opcode
+	*(DWORD*)((BYTE*)hookVars::execMem + TRAMPOLINE_SZ + 1) = (DWORD)(hookVars::oEndScene + TRAMPOLINE_SZ) - (DWORD)hookVars::execMem - 5; // relative offset
+
+	// calculate the relative jmp address to our hook
+	hookVars::relJmpAddrToHook =  (DWORD)&hkEndScene - (DWORD)hookVars::oEndScene - 5;
+
+	// write the jmp to our hook
+	*(BYTE*)hookVars::oEndScene = 0xE9;
+	*(DWORD*)(hookVars::oEndScene + 1) = hookVars::relJmpAddrToHook;
+	*(BYTE*)(hookVars::oEndScene + 5) = 0x90;
+	*(BYTE*)(hookVars::oEndScene + 6) = 0x90;
+
+    BYTE checkHook[4];
+    memcpy(checkHook, (void*)(hookVars::oEndScene + 1), 4);
+    if (*(DWORD*)(void*)(hookVars::oEndScene + 1) != hookVars::relJmpAddrToHook) {
+        LOG("ERROR: Hook was not written correctly.");
+        return false;
+    }
+
+	// print out the bytes we've written to the original EndScene
+	LOG("Bytes written to original EndScene: ");
+	for (int i = 0; i < TRAMPOLINE_SZ; i++) {
+		LOG("0x", std::hex, (int)*(BYTE*)(hookVars::oEndScene + i));
+	}
+
     LOG("Installed hook successfully");
+    resumeAllThreads();
     return true;
 }
 
@@ -213,6 +244,7 @@ bool __stdcall installHook() {
 void __stdcall startThread(HMODULE hModule) {
     AllocConsole();
     freopen_s(reinterpret_cast<FILE**>(stdout), "CONOUT$", "w", stdout);
+
     LOG("Hook thread started, checking process details.");
 
     ULONG64 bitMask = 0;
