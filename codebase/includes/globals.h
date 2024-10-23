@@ -6,8 +6,11 @@
 #define ENDSCENE_INDEX 42 // index of EndScene() in IDirect3DDevice9 vtable
 #define TRAMPOLINE_SZ 7 // # bytes overwritten in oEndScene in order to jmp to our hook (aka trampoline)
 #define JMP_SZ 5
+#define RET_TRAMPOLINE_SZ 5 // # bytes required to execute overwritten bytes in oEndScene + jmp back to original EndScene
 
 using MEM_TYPES = std::variant<unsigned int, float, std::string>;
+
+typedef HRESULT(__stdcall* EndScene_t)(LPDIRECT3DDEVICE9 pDevice);
 
 #ifdef _MENU_ONLY
 // Placeholder data for testing without actual game loaded
@@ -83,7 +86,7 @@ namespace guiVars {
 }
 
 namespace hookVars {
-	extern DWORD oEndScene; // original DX9 end scene fn address
+	extern EndScene_t oEndScene; // original DX9 end scene fn address
 	extern volatile LPDIRECT3DDEVICE9 pDevice; // IDirect3DDevice9 pointer being used in the target application
     extern BYTE oldEndSceneAsm[];
     extern DWORD relJmpAddrToHook;

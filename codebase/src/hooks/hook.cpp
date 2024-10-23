@@ -1,7 +1,5 @@
 #include "hook.h"
 
-BYTE testCode[] = { 0x90, 0x90 };
-
 /*
 * Exception handler for catching unhandled exceptions.
     *
@@ -43,26 +41,41 @@ LONG WINAPI ExceptionHandler(EXCEPTION_POINTERS* ExceptionInfo) {
         because we're manually manipulating the stack and registers.
         - The 0x2C offset is specific to the calling convention and the layout of arguments
         on the stack when EndScene is called. This offset points to the IDirect3DDevice9
-        pointer passed to EndScene. I didn't come up with this asm code as well as finding the offset,
-        credits to the UC posts I've researched and the original author.
+        pointer passed to EndScene. 
 */
-__declspec(naked) void __stdcall hkEndScene() {
-    LOG("Hooked EndScene called.");
-    static LPDIRECT3DDEVICE9 pDevice = nullptr;
 
-    __asm {
-        push esi
-        mov esi, [ebp + 8] // determinmed by IDA that this ptr (dword ptr 8 local var) is pDevice
-        mov pDevice, esi
-        pop esi
-    }
+HRESULT __stdcall customEndScene(LPDIRECT3DDEVICE9 pDevice) {
+    LOG("Custom End Scene called.");
 
-    if (pDevice != nullptr) {
-        renderOverlay(pDevice);
-    }
+    if (pDevice == nullptr) {
+		LOG("ERROR: pDevice is null inside customEndScene");
+        return E_FAIL;
+	}
 
-    __asm {
-        jmp [hookVars::execMem]
+	return hookVars::oEndScene(pDevice);
+}
+
+__declspec(naked) HRESULT __stdcall hkEndScene(LPDIRECT3DDEVICE9 pDevice)
+{
+    __asm
+    {
+		; Preserve registers and flags
+        push ebp
+        mov ebp, esp
+        pushad
+        pushfd
+
+        ; Push the parameter(pDevice)
+        push[ebp + 8]
+
+        call CustomEndScene
+
+        ; Restore CPU state
+        popfd
+        popad
+        pop ebp
+
+        ret
     }
 }
 
@@ -137,62 +150,22 @@ bool __stdcall installHook() {
 
 	pauseAllThreads();
 
-	hookVars::oEndScene = findEndScene();
-    if (hookVars::oEndScene == NULL) {
+	DWORD endSceneAddr = findEndScene();
+    if (endSceneAddr == NULL) {
         LOG("ERROR: GetProcAddress failed on getting EndScene.");
         LOG("ERROR: Got error ", dwordErrorToString(GetLastError()));
         return false;
     }
 
-	// sanity check that we got the right address for EndScene
-    // do this by calling it
-	LPDIRECT3D9 pD3D = Direct3DCreate9(D3D_SDK_VERSION);
-	if (!pD3D) {
-		LOG("ERROR: Direct3DCreate9 failed.");
-		LOG("ERROR: Got error ", dwordErrorToString(GetLastError()));
-		return false;
-	}
-
-	D3DDISPLAYMODE d3ddm;
-	if (FAILED(pD3D->GetAdapterDisplayMode(D3DADAPTER_DEFAULT, &d3ddm))) {
-		LOG("ERROR: GetAdapterDisplayMode failed.");
-		LOG("ERROR: Got error ", dwordErrorToString(GetLastError()));
-		return false;
-	}
-
-	D3DPRESENT_PARAMETERS d3dpp = { 0 };
-	d3dpp.Windowed = TRUE;
-	d3dpp.SwapEffect = D3DSWAPEFFECT_DISCARD;
-	d3dpp.BackBufferFormat = d3ddm.Format;
-
-	LPDIRECT3DDEVICE9 pDevice = nullptr;
-	if (SUCCEEDED(pD3D->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, GetDesktopWindow(), D3DCREATE_SOFTWARE_VERTEXPROCESSING, &d3dpp, &pDevice))) {
-		LOG("Created device successfully.");
-	}
-	else {
-		LOG("ERROR: CreateDevice failed.");
-		LOG("ERROR: Got error ", dwordErrorToString(GetLastError()));
-		return false;
-	}
-
-	// call the original EndScene to ensure we got the right address
-	// this is a sanity check to ensure we're hooking the right function
-	// and that we can call it successfully
-	((void(__stdcall*)(LPDIRECT3DDEVICE9))(hookVars::oEndScene))(pDevice);
-	LOG("EndScene called successfully, sanity check passed.");
-
-	pDevice->Release();
-	pD3D->Release();
-
     DWORD protect;
-    if (!VirtualProtect((void*)hookVars::oEndScene, TRAMPOLINE_SZ, PAGE_EXECUTE_READWRITE, &protect)) {
+    if (!VirtualProtect((void*)endSceneAddr, TRAMPOLINE_SZ, PAGE_EXECUTE_READWRITE, &protect)) {
         LOG("ERROR: Changing read/write perms on EndScene address failed.");
         LOG("ERROR: Got error", dwordErrorToString(GetLastError()));
         return false;
     }
 	LOG("VirtualProtect perms changed successfully on EndScene ASM.");
 
-    memcpy(hookVars::oldEndSceneAsm, (void*)hookVars::oEndScene, TRAMPOLINE_SZ);
+    memcpy(hookVars::oldEndSceneAsm, (void*)endSceneAddr, TRAMPOLINE_SZ);
 
 	hookVars::execMem = VirtualAlloc(0, TRAMPOLINE_SZ + 5, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
 	if (!hookVars::execMem) {
@@ -201,33 +174,10 @@ bool __stdcall installHook() {
 		return false;
 	}
 
-	// write the original EndScene bytes to the executable memory
-	memcpy(hookVars::execMem, hookVars::oldEndSceneAsm, TRAMPOLINE_SZ);
-
-	// write the jmp back to the original EndScene after our hook
-	*(BYTE*)((BYTE*)hookVars::execMem + TRAMPOLINE_SZ) = 0xE9; // jmp opcode
-	*(DWORD*)((BYTE*)hookVars::execMem + TRAMPOLINE_SZ + 1) = (DWORD)(hookVars::oEndScene + TRAMPOLINE_SZ) - (DWORD)hookVars::execMem - 5; // relative offset
-
-	// calculate the relative jmp address to our hook
-	hookVars::relJmpAddrToHook =  (DWORD)&hkEndScene - (DWORD)hookVars::oEndScene - 5;
-
-	// write the jmp to our hook
-	*(BYTE*)hookVars::oEndScene = 0xE9;
-	*(DWORD*)(hookVars::oEndScene + 1) = hookVars::relJmpAddrToHook;
-	*(BYTE*)(hookVars::oEndScene + 5) = 0x90;
-	*(BYTE*)(hookVars::oEndScene + 6) = 0x90;
-
-    BYTE checkHook[4];
-    memcpy(checkHook, (void*)(hookVars::oEndScene + 1), 4);
-    if (*(DWORD*)(void*)(hookVars::oEndScene + 1) != hookVars::relJmpAddrToHook) {
-        LOG("ERROR: Hook was not written correctly.");
-        return false;
-    }
-
 	// print out the bytes we've written to the original EndScene
 	LOG("Bytes written to original EndScene: ");
 	for (int i = 0; i < TRAMPOLINE_SZ; i++) {
-		LOG("0x", std::hex, (int)*(BYTE*)(hookVars::oEndScene + i));
+		LOG("0x", std::hex, (int)*(BYTE*)(endSceneAddr + i));
 	}
 
     LOG("Installed hook successfully");
