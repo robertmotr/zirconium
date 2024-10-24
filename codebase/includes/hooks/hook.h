@@ -30,7 +30,7 @@
         pointer passed to EndScene. I didn't come up with this asm code as well as finding the offset,
         credits to the UC posts I've researched and the original author.
 */
-void __stdcall hkEndScene();
+__declspec(naked) void __stdcall hkEndScene();
 
 /*
 * Installs the hook by overwriting the EndScene function pointer in the VMT with our hook.
@@ -54,3 +54,10 @@ void __stdcall startThread(HMODULE hModule);
 	* @return The exception code.
 */
 LONG WINAPI ExceptionHandler(EXCEPTION_POINTERS* ExceptionInfo);
+
+/*
+* Finds the EndScene fn addr by creating a dummy device and getting the vtable.
+    *
+    * @return EndScene's address in process memory as a DWORD otherwise NULL if failed.
+*/
+BYTE* __stdcall findEndScene();

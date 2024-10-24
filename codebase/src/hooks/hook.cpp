@@ -39,43 +39,27 @@ LONG WINAPI ExceptionHandler(EXCEPTION_POINTERS* ExceptionInfo) {
         - The function is marked as `__declspec(naked)` to avoid the compiler generating
         prologue and epilogue code (such as setting up the stack frame). This is essential
         because we're manually manipulating the stack and registers.
-        - The 0x2C offset is specific to the calling convention and the layout of arguments
-        on the stack when EndScene is called. This offset points to the IDirect3DDevice9
-        pointer passed to EndScene. 
 */
 
-HRESULT __stdcall customEndScene(LPDIRECT3DDEVICE9 pDevice) {
-    LOG("Custom End Scene called.");
-
-    if (pDevice == nullptr) {
-		LOG("ERROR: pDevice is null inside customEndScene");
-        return E_FAIL;
-	}
-
-	return hookVars::oEndScene(pDevice);
-}
-
-__declspec(naked) HRESULT __stdcall hkEndScene(LPDIRECT3DDEVICE9 pDevice)
-{
+__declspec(naked) void __stdcall hkEndScene() {
+    LOG("Hooked EndScene called.");
     __asm
     {
-		; Preserve registers and flags
-        push ebp
-        mov ebp, esp
-        pushad
-        pushfd
-
-        ; Push the parameter(pDevice)
-        push[ebp + 8]
-
-        call CustomEndScene
-
-        ; Restore CPU state
-        popfd
-        popad
-        pop ebp
-
-        ret
+        mov eax, [esp + 8] // according to IDA pdevice lies at esp + 8
+        mov hookVars::pDevice, eax 
+    }
+    
+    if(hookVars::pDevice != nullptr) {
+        renderOverlay(hookVars::pDevice);
+    }
+    else {
+        LOG("ERROR: Got nullptr for pDevice inside hkEndScene.");
+        // crash here or smth idk
+    }
+    
+    __asm {
+        mov eax, &oldEndSceneAsm
+        jmp eax
     }
 }
 
@@ -84,7 +68,7 @@ __declspec(naked) HRESULT __stdcall hkEndScene(LPDIRECT3DDEVICE9 pDevice)
 	*
 	* @return EndScene's address in process memory as a DWORD otherwise NULL if failed.
 */
-DWORD findEndScene() {
+BYTE* __stdcall findEndScene() {
     HMODULE hD3D = 0;
     while (!hD3D)
         hD3D = GetModuleHandleA("d3d9.dll");
@@ -92,28 +76,28 @@ DWORD findEndScene() {
 	if (!hD3D) {
 		LOG("ERROR: GetModuleHandleA failed on d3d9.dll.");
 		LOG("ERROR: Got error ", dwordErrorToString(GetLastError()));
-		return NULL;
+        return nullptr;
 	}
 
 	HWND hwnd = GetDesktopWindow();
 	if (hwnd == NULL) {
 		LOG("ERROR: GetDesktopWindow failed.");
 		LOG("ERROR: Got error ", dwordErrorToString(GetLastError()));
-		return NULL;
+        return nullptr;
 	}
 
 	LPDIRECT3D9 pD3D = Direct3DCreate9(D3D_SDK_VERSION);
     if (!pD3D) {
         LOG("ERROR: Direct3DCreate9 failed.");
         LOG("ERROR: Got error ", dwordErrorToString(GetLastError()));
-        return NULL;
+        return nullptr;
     }
 
 	D3DDISPLAYMODE d3ddm;
 	if (FAILED(pD3D->GetAdapterDisplayMode(D3DADAPTER_DEFAULT, &d3ddm))) {
 		LOG("ERROR: GetAdapterDisplayMode failed.");
 		LOG("ERROR: Got error ", dwordErrorToString(GetLastError()));
-		return NULL;
+        return nullptr;
 	}
 
 	D3DPRESENT_PARAMETERS d3dpp = { 0 };
@@ -128,7 +112,7 @@ DWORD findEndScene() {
     else {
         LOG("ERROR: CreateDevice failed.");
         LOG("ERROR: Got error ", dwordErrorToString(GetLastError()));
-        return NULL;
+        return nullptr;
 	}
 
 	DWORD* vTable = (DWORD*)*(DWORD*)pDevice;
@@ -138,7 +122,7 @@ DWORD findEndScene() {
 	pDevice->Release();
 	pD3D->Release();
 
-	return endSceneAddr;
+	return (BYTE*)endSceneAddr;
 }
 
 /*
@@ -150,8 +134,8 @@ bool __stdcall installHook() {
 
 	pauseAllThreads();
 
-	DWORD endSceneAddr = findEndScene();
-    if (endSceneAddr == NULL) {
+	BYTE* endSceneAddr = findEndScene();
+    if (endSceneAddr == nullptr) {
         LOG("ERROR: GetProcAddress failed on getting EndScene.");
         LOG("ERROR: Got error ", dwordErrorToString(GetLastError()));
         return false;
@@ -165,20 +149,36 @@ bool __stdcall installHook() {
     }
 	LOG("VirtualProtect perms changed successfully on EndScene ASM.");
 
+    // backup oEndScene
     memcpy(hookVars::oldEndSceneAsm, (void*)endSceneAddr, TRAMPOLINE_SZ);
 
-	hookVars::execMem = VirtualAlloc(0, TRAMPOLINE_SZ + 5, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
-	if (!hookVars::execMem) {
-		LOG("ERROR: VirtualAlloc failed.");
-		LOG("ERROR: Got error", dwordErrorToString(GetLastError()));
-		return false;
-	}
+    // overwrite endscene with a jump to hook + 2 NOPs to align with instruction boundaries
+    *endSceneAddr = JMP_OPCODE;
+    
+    DWORD relativeJumpToHook = (DWORD)&hkEndScene - (*endSceneAddr + 5);
+    *(DWORD*)(endSceneAddr + 1) = relativeJumpToHook;
 
-	// print out the bytes we've written to the original EndScene
-	LOG("Bytes written to original EndScene: ");
-	for (int i = 0; i < TRAMPOLINE_SZ; i++) {
-		LOG("0x", std::hex, (int)*(BYTE*)(endSceneAddr + i));
-	}
+    *(endSceneAddr + 5) = NOP_OPCODE;
+    *(endSceneAddr + 6) = NOP_OPCODE;
+
+    // print out the bytes we've written to the original EndScene
+    LOG("Bytes written to original EndScene: ");
+    for (int i = 0; i < HOOK_SZ; i++) {
+        LOG("0x", (BYTE*)(endSceneAddr + i));
+    }
+
+    // change permissions for oldEndSceneAsm so we can use it as a trampoline
+    if (!VirtualProtect(hookVars::oldEndSceneAsm, TRAMPOLINE_SZ + JMP_SZ, PAGE_EXECUTE_READWRITE, &protect)) {
+        LOG("ERROR: Unable to change memory permissions at oldEndSceneAsm.");
+        LOG("ERROR: Got error:", dwordErrorToString(GetLastError()));
+        // crash or smth idk
+    }
+
+    // write the jump such that we jump to oEndScene + TRAMPOLINE_SZ bytes (otherwise, itd be looping infinitely)
+    DWORD relativeJumpToEndScene = (hookVars::oEndScene + TRAMPOLINE_SZ) - 
+                                   (hookVars::oldEndSceneAsm + TRAMPOLINE_SZ + 1 + TRAMPOLINE_SZ);
+    hookVars::oldEndSceneAsm[TRAMPOLINE_SZ + 1] = JMP_OPCODE;
+    hookVars::oldEndSceneAsm[TRAMPOLINE_SZ + 2] = relativeJumpToEndScene;
 
     LOG("Installed hook successfully");
     resumeAllThreads();

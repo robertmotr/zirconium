@@ -4,9 +4,11 @@
 
 #define PE_MODULE_NAME "plutonium-bootstrapper-win32.exe"
 #define ENDSCENE_INDEX 42 // index of EndScene() in IDirect3DDevice9 vtable
-#define TRAMPOLINE_SZ 7 // # bytes overwritten in oEndScene in order to jmp to our hook (aka trampoline)
-#define JMP_SZ 5
-#define RET_TRAMPOLINE_SZ 5 // # bytes required to execute overwritten bytes in oEndScene + jmp back to original EndScene
+#define HOOK_SZ        7
+#define JMP_SZ         5
+#define TRAMPOLINE_SZ  HOOK_SZ + JMP_SZ
+#define JMP_OPCODE     0xE9 // only simple jump
+#define NOP_OPCODE     0x90
 
 using MEM_TYPES = std::variant<unsigned int, float, std::string>;
 
@@ -86,9 +88,9 @@ namespace guiVars {
 }
 
 namespace hookVars {
-	extern EndScene_t oEndScene; // original DX9 end scene fn address
+    extern BYTE* oEndScene;
+    extern BYTE* endSceneAfterHook;
 	extern volatile LPDIRECT3DDEVICE9 pDevice; // IDirect3DDevice9 pointer being used in the target application
     extern BYTE oldEndSceneAsm[];
-    extern DWORD relJmpAddrToHook;
-	extern void* execMem;
+	extern BYTE* trampoline;
 }
