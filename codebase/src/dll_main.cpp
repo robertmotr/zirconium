@@ -2,10 +2,9 @@
 
 #ifndef _MENU_ONLY // then its either Release/Debug which has the full DLL	
 	BOOL __stdcall DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved) {
+
 		if (fdwReason == DLL_PROCESS_ATTACH) {
-            LOG("Full DLL selected, not in Menu Only mode");
-			LOG("DLL_PROCESS_ATTACH called.");
-			DisableThreadLibraryCalls(hModule);
+            DisableThreadLibraryCalls(hModule);
 			CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)startThread, NULL, NULL, NULL);
 		}
 		//else if (fdwReason == DLL_PROCESS_DETACH) {

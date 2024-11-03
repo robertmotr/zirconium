@@ -7,14 +7,68 @@
     * @return The exception code.
 */
 LONG WINAPI ExceptionHandler(EXCEPTION_POINTERS* ExceptionInfo) {
-    LOG("Exception caught! Code: 0x", ExceptionInfo->ExceptionRecord->ExceptionCode);
+    DWORD exceptionCode = ExceptionInfo->ExceptionRecord->ExceptionCode;
+    void* exceptionAddress = ExceptionInfo->ExceptionRecord->ExceptionAddress;
+    CONTEXT* context = ExceptionInfo->ContextRecord;
 
-    if (ExceptionInfo->ExceptionRecord->ExceptionCode == EXCEPTION_ACCESS_VIOLATION) {
-        LOG("ERROR: Access violation occurred!");
+    LOG("Exception Code:", "0x", (void*)exceptionCode);
+    LOG("Exception Address:", "0x", (void*)exceptionAddress);
+
+    switch (exceptionCode) {
+    case EXCEPTION_ACCESS_VIOLATION:
+        LOG("Exception: Access Violation");
+        break;
+    case EXCEPTION_ARRAY_BOUNDS_EXCEEDED:
+        LOG("Exception: Array Bounds Exceeded");
+        break;
+    case EXCEPTION_FLT_DIVIDE_BY_ZERO:
+        LOG("Exception: Float Divide by Zero");
+        break;
+    case EXCEPTION_INT_DIVIDE_BY_ZERO:
+        LOG("Exception: Integer Divide by Zero");
+        break;
+    default:
+        LOG("Exception: Unknown");
+        break;
     }
 
-    LOG("Press Enter to close the console...");
-    std::cin.get();
+    LOG("Register State:");
+    LOG("EAX:", "0x", (void*)context->Eax);
+    LOG("EBX:", "0x", (void*)context->Ebx);
+    LOG("ECX:", "0x", (void*)context->Ecx);
+    LOG("EDX:", "0x", (void*)context->Edx);
+    LOG("ESI:", "0x", (void*)context->Esi);
+    LOG("EDI:", "0x", (void*)context->Edi);
+    LOG("EBP:", "0x", (void*)context->Ebp);
+    LOG("ESP:", "0x", (void*)context->Esp);
+    LOG("EIP:", "0x", (void*)context->Eip);
+
+    HANDLE process = GetCurrentProcess();
+    HANDLE thread = GetCurrentThread();
+
+    SymInitialize(process, NULL, TRUE);  
+    STACKFRAME64 stackFrame;
+    memset(&stackFrame, 0, sizeof(STACKFRAME64));
+
+    stackFrame.AddrPC.Offset = context->Eip;
+    stackFrame.AddrPC.Mode = AddrModeFlat;
+    stackFrame.AddrFrame.Offset = context->Ebp;
+    stackFrame.AddrFrame.Mode = AddrModeFlat;
+    stackFrame.AddrStack.Offset = context->Esp;
+    stackFrame.AddrStack.Mode = AddrModeFlat;
+
+    LOG("Stack Trace:");
+    for (int i = 0; i < 10; i++) {  
+        if (!StackWalk64(IMAGE_FILE_MACHINE_I386, process, thread, &stackFrame, context, NULL,
+            SymFunctionTableAccess64, SymGetModuleBase64, NULL)) {
+            break;
+        }
+
+        LOG("Frame", i, ":", "0x", (void*)stackFrame.AddrPC.Offset);
+    }
+    SymCleanup(process);  
+
+	while (1) {} // infinite loop to catch the exception
 
     return EXCEPTION_EXECUTE_HANDLER;
 }
@@ -58,8 +112,7 @@ __declspec(naked) void __stdcall hkEndScene() {
     }
     
     __asm {
-        mov eax, &oldEndSceneAsm
-        jmp eax
+		jmp [hookVars::oldEndSceneAsm]
     }
 }
 
@@ -140,6 +193,7 @@ bool __stdcall installHook() {
         LOG("ERROR: Got error ", dwordErrorToString(GetLastError()));
         return false;
     }
+	hookVars::oEndScene = endSceneAddr;
 
     DWORD protect;
     if (!VirtualProtect((void*)endSceneAddr, TRAMPOLINE_SZ, PAGE_EXECUTE_READWRITE, &protect)) {
@@ -149,8 +203,21 @@ bool __stdcall installHook() {
     }
 	LOG("VirtualProtect perms changed successfully on EndScene ASM.");
 
+    // change permissions for oldEndSceneAsm so we can use it as a trampoline
+    if (!VirtualProtect(hookVars::oldEndSceneAsm, TRAMPOLINE_SZ + JMP_SZ, PAGE_EXECUTE_READWRITE, &protect)) {
+        LOG("ERROR: Unable to change memory permissions at oldEndSceneAsm.");
+        LOG("ERROR: Got error:", dwordErrorToString(GetLastError()));
+        // crash or smth idk
+    }
+    LOG("VirtualProtect perms changed successfully on trampoline ASM array.");
+
     // backup oEndScene
-    memcpy(hookVars::oldEndSceneAsm, (void*)endSceneAddr, TRAMPOLINE_SZ);
+    memcpy(hookVars::oldEndSceneAsm, endSceneAddr, TRAMPOLINE_SZ);
+
+    LOG("Bytes from original EndScene instructions: ");
+    for (int i = 0; i < HOOK_SZ; i++) {
+        LOG("0x", (void*)hookVars::oldEndSceneAsm[i]);
+    }
 
     // overwrite endscene with a jump to hook + 2 NOPs to align with instruction boundaries
     *endSceneAddr = JMP_OPCODE;
@@ -158,27 +225,20 @@ bool __stdcall installHook() {
     DWORD relativeJumpToHook = (DWORD)&hkEndScene - (*endSceneAddr + 5);
     *(DWORD*)(endSceneAddr + 1) = relativeJumpToHook;
 
-    *(endSceneAddr + 5) = NOP_OPCODE;
-    *(endSceneAddr + 6) = NOP_OPCODE;
+    //*(endSceneAddr + 5) = NOP_OPCODE;
+    //*(endSceneAddr + 6) = NOP_OPCODE;
 
     // print out the bytes we've written to the original EndScene
     LOG("Bytes written to original EndScene: ");
     for (int i = 0; i < HOOK_SZ; i++) {
-        LOG("0x", (BYTE*)(endSceneAddr + i));
-    }
-
-    // change permissions for oldEndSceneAsm so we can use it as a trampoline
-    if (!VirtualProtect(hookVars::oldEndSceneAsm, TRAMPOLINE_SZ + JMP_SZ, PAGE_EXECUTE_READWRITE, &protect)) {
-        LOG("ERROR: Unable to change memory permissions at oldEndSceneAsm.");
-        LOG("ERROR: Got error:", dwordErrorToString(GetLastError()));
-        // crash or smth idk
+        LOG("0x", (void*)(*(endSceneAddr + i)));
     }
 
     // write the jump such that we jump to oEndScene + TRAMPOLINE_SZ bytes (otherwise, itd be looping infinitely)
     DWORD relativeJumpToEndScene = (hookVars::oEndScene + TRAMPOLINE_SZ) - 
-                                   (hookVars::oldEndSceneAsm + TRAMPOLINE_SZ + 1 + TRAMPOLINE_SZ);
-    hookVars::oldEndSceneAsm[TRAMPOLINE_SZ + 1] = JMP_OPCODE;
-    hookVars::oldEndSceneAsm[TRAMPOLINE_SZ + 2] = relativeJumpToEndScene;
+                                   (hookVars::oldEndSceneAsm + TRAMPOLINE_SZ + JMP_SZ);
+    hookVars::oldEndSceneAsm[TRAMPOLINE_SZ] = JMP_OPCODE;
+    memcpy(&hookVars::oldEndSceneAsm[TRAMPOLINE_SZ + 1], &relativeJumpToEndScene, sizeof(DWORD));
 
     LOG("Installed hook successfully");
     resumeAllThreads();
@@ -195,7 +255,22 @@ void __stdcall startThread(HMODULE hModule) {
     AllocConsole();
     freopen_s(reinterpret_cast<FILE**>(stdout), "CONOUT$", "w", stdout);
 
+    std::string desktopPath = std::getenv("USERPROFILE");
+    desktopPath += "\\Desktop\\output.log";
+    std::ofstream logFile(desktopPath, std::ios::app);
+
+    if (!logFile) {
+        std::cerr << "Failed to open log file on the Desktop." << std::endl;
+        return;
+    }
+
+    DualOutputBuf dualBuf(std::cout.rdbuf(), logFile.rdbuf());
+
+    std::streambuf* originalCoutBuffer = std::cout.rdbuf(&dualBuf);
+    std::streambuf* originalCerrBuffer = std::cerr.rdbuf(&dualBuf);
+
     LOG("Hook thread started, checking process details.");
+    SetUnhandledExceptionFilter(ExceptionHandler);
 
     ULONG64 bitMask = 0;
     if (!GetProcessMitigationPolicy(GetCurrentProcess(), ProcessMitigationOptionsMask, &bitMask, sizeof(ULONG64))) {
@@ -207,7 +282,6 @@ void __stdcall startThread(HMODULE hModule) {
     LOG("----- Process mitigation options: -----\n", mitMaskToString(bitMask));
     LOG("---------------------------------------");
 
-    SetUnhandledExceptionFilter(ExceptionHandler);
     
     if (!installHook()) {
         LOG("Failed to install hook.");

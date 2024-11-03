@@ -3,7 +3,7 @@
 #include "pch.h"
 
 #define PE_MODULE_NAME "plutonium-bootstrapper-win32.exe"
-#define ENDSCENE_INDEX 42 // index of EndScene() in IDirect3DDevice9 vtable
+#define ENDSCENE_INDEX 42 // EndScene() index in IDirect3DDevice9 vtable
 #define HOOK_SZ        7
 #define JMP_SZ         5
 #define TRAMPOLINE_SZ  HOOK_SZ + JMP_SZ
@@ -92,5 +92,4 @@ namespace hookVars {
     extern BYTE* endSceneAfterHook;
 	extern volatile LPDIRECT3DDEVICE9 pDevice; // IDirect3DDevice9 pointer being used in the target application
     extern BYTE oldEndSceneAsm[];
-	extern BYTE* trampoline;
 }

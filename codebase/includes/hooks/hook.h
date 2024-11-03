@@ -30,7 +30,7 @@
         pointer passed to EndScene. I didn't come up with this asm code as well as finding the offset,
         credits to the UC posts I've researched and the original author.
 */
-__declspec(naked) void __stdcall hkEndScene();
+void __stdcall hkEndScene();
 
 /*
 * Installs the hook by overwriting the EndScene function pointer in the VMT with our hook.
