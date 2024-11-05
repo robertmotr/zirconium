@@ -58,9 +58,5 @@ namespace guiVars {
 namespace hookVars {
 	DWORD							oEndScene = NULL; // original EndScene function address
 	volatile LPDIRECT3DDEVICE9		pDevice = nullptr; // IDirect3DDevice9 pointer being used in the target application
-	BYTE							newEndSceneAsm[TRAMPOLINE_SZ] = {0};
-	BYTE							oldEndSceneAsm[TRAMPOLINE_SZ] = {0};
-	BYTE							expectedEndSceneAsm[TRAMPOLINE_SZ] = {0x6A, 0x14, // push 14h
-																		  0xB8, 0x70, 0x47, 0x08, 0x10 }; // mov eax, offset loc_10084770
-	DWORD							relJmpAddrToHook = NULL;
+	BYTE*							trampoline = nullptr;		
 }

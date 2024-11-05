@@ -1,7 +1,9 @@
 #pragma once
 
+#define _CRT_SECURE_NO_WARNINGS
+
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
-	#define IMGUI_DEFINE_MATH_OPERATORS
+#define IMGUI_DEFINE_MATH_OPERATORS
 #endif
 
 #include <Windows.h>
@@ -21,10 +23,15 @@
 #include <variant>
 #include <cmath>
 #include <math.h>
+#include <TlHelp32.h>
+#include <dbghelp.h>
+#include <fstream>
+#include <cstdlib>
 
 // link dx9 stuff
 #pragma comment(lib, "d3d9.lib")
 #pragma comment(lib, "d3dx9.lib")
+#pragma comment(lib, "dbghelp.lib")
 
 // imgui stuff
 #include "imgui.h"
@@ -35,4 +42,3 @@
 #include "misc/cpp/imgui_stdlib.h"
 
 #include "logger.h"
-

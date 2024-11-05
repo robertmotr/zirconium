@@ -7,14 +7,66 @@
     * @return The exception code.
 */
 LONG WINAPI ExceptionHandler(EXCEPTION_POINTERS* ExceptionInfo) {
-    LOG("Exception caught! Code: 0x", ExceptionInfo->ExceptionRecord->ExceptionCode);
+    DWORD exceptionCode = ExceptionInfo->ExceptionRecord->ExceptionCode;
+    void* exceptionAddress = ExceptionInfo->ExceptionRecord->ExceptionAddress;
+    CONTEXT* context = ExceptionInfo->ContextRecord;
 
-    if (ExceptionInfo->ExceptionRecord->ExceptionCode == EXCEPTION_ACCESS_VIOLATION) {
-        LOG("ERROR: Access violation occurred!");
+    LOG("Exception Code:", "0x", (void*)exceptionCode);
+    LOG("Exception Address:", "0x", (void*)exceptionAddress);
+
+    switch (exceptionCode) {
+    case EXCEPTION_ACCESS_VIOLATION:
+        LOG("Exception: Access Violation");
+        break;
+    case EXCEPTION_ARRAY_BOUNDS_EXCEEDED:
+        LOG("Exception: Array Bounds Exceeded");
+        break;
+    case EXCEPTION_FLT_DIVIDE_BY_ZERO:
+        LOG("Exception: Float Divide by Zero");
+        break;
+    case EXCEPTION_INT_DIVIDE_BY_ZERO:
+        LOG("Exception: Integer Divide by Zero");
+        break;
+    default:
+        LOG("Exception: Unknown");
+        break;
     }
 
-    LOG("Press Enter to close the console...");
-    std::cin.get();
+    LOG("Register State:");
+    LOG("EAX:", "0x", (void*)context->Eax);
+    LOG("EBX:", "0x", (void*)context->Ebx);
+    LOG("ECX:", "0x", (void*)context->Ecx);
+    LOG("EDX:", "0x", (void*)context->Edx);
+    LOG("ESI:", "0x", (void*)context->Esi);
+    LOG("EDI:", "0x", (void*)context->Edi);
+    LOG("EBP:", "0x", (void*)context->Ebp);
+    LOG("ESP:", "0x", (void*)context->Esp);
+    LOG("EIP:", "0x", (void*)context->Eip);
+
+    HANDLE process = GetCurrentProcess();
+    HANDLE thread = GetCurrentThread();
+
+    SymInitialize(process, NULL, TRUE);
+    STACKFRAME64 stackFrame;
+    memset(&stackFrame, 0, sizeof(STACKFRAME64));
+
+    stackFrame.AddrPC.Offset = context->Eip;
+    stackFrame.AddrPC.Mode = AddrModeFlat;
+    stackFrame.AddrFrame.Offset = context->Ebp;
+    stackFrame.AddrFrame.Mode = AddrModeFlat;
+    stackFrame.AddrStack.Offset = context->Esp;
+    stackFrame.AddrStack.Mode = AddrModeFlat;
+
+    LOG("Stack Trace:");
+    for (int i = 0; i < 10; i++) {
+        if (!StackWalk64(IMAGE_FILE_MACHINE_I386, process, thread, &stackFrame, context, NULL,
+            SymFunctionTableAccess64, SymGetModuleBase64, NULL)) {
+            break;
+        }
+
+        LOG("Frame", i, ":", "0x", (void*)stackFrame.AddrPC.Offset);
+    }
+    SymCleanup(process);
 
     return EXCEPTION_EXECUTE_HANDLER;
 }
@@ -46,33 +98,27 @@ LONG WINAPI ExceptionHandler(EXCEPTION_POINTERS* ExceptionInfo) {
 */
 __declspec(naked) void __stdcall hkEndScene() {
     LOG("Hooked EndScene called.");
-    static volatile LPDIRECT3DDEVICE9 pDevice = nullptr;
-
-	// execute the 7 bytes of what we've overwritten in the original EndScene to make sure theres no problems
-	if (execBytes(hookVars::oldEndSceneAsm, TRAMPOLINE_SZ)) {
-		LOG("Executed newEndSceneAsm successfully.");
-	}
-	else {
-		LOG("ERROR: Failed to execute newEndSceneAsm.");
-		// exit(-1);
-	}
-
-	// our actual asm hook code to get the target application's device ptr
+    
     __asm {
         push esi
-        mov esi, [ebp + 8] // determinmed by IDA that this ptr (dword ptr 8 local var) is pDevice
-        mov pDevice, esi
+        mov esi, [esp + 8] // determinmed by IDA that this ptr (dword ptr 8 local var) is pDevice
+        mov hookVars::pDevice, esi
         pop esi
+
+        pushad
+        pushfd
     }
 
-    if (pDevice == nullptr) {
+    if (hookVars::pDevice == nullptr) {
         LOG("ERROR: pDevice inside hkEndScene is nullptr.");
         // exit(-1);
     }
-    renderOverlay(pDevice);
+    renderOverlay(hookVars::pDevice);
     
     __asm {
-        jmp [hookVars::oEndScene + 7] // resume rest of original endscene 
+		popfd
+		popad
+        jmp [hookVars::trampoline] // resume rest of original endscene 
     }
 }
 
@@ -130,7 +176,7 @@ DWORD findEndScene() {
 
 	DWORD* vTable = (DWORD*)*(DWORD*)pDevice;
 	DWORD endSceneAddr = vTable[42];
-	LOG("EndScene address found as: 0x", (void*)endSceneAddr);
+	LOG("EndScene address (dummy method) found as: 0x", (void*)endSceneAddr);
 
 	pDevice->Release();
 	pD3D->Release();
@@ -148,95 +194,49 @@ bool __stdcall installHook() {
     if (hookVars::oEndScene == NULL) {
         LOG("ERROR: GetProcAddress failed on getting EndScene.");
         LOG("ERROR: Got error ", dwordErrorToString(GetLastError()));
+        return false;
     }
-
-	// sanity check that we got the right address for EndScene
-    // do this by calling it
-	LPDIRECT3D9 pD3D = Direct3DCreate9(D3D_SDK_VERSION);
-	if (!pD3D) {
-		LOG("ERROR: Direct3DCreate9 failed.");
-		LOG("ERROR: Got error ", dwordErrorToString(GetLastError()));
-		return false;
-	}
-
-	D3DDISPLAYMODE d3ddm;
-	if (FAILED(pD3D->GetAdapterDisplayMode(D3DADAPTER_DEFAULT, &d3ddm))) {
-		LOG("ERROR: GetAdapterDisplayMode failed.");
-		LOG("ERROR: Got error ", dwordErrorToString(GetLastError()));
-		return false;
-	}
-
-	D3DPRESENT_PARAMETERS d3dpp = { 0 };
-	d3dpp.Windowed = TRUE;
-	d3dpp.SwapEffect = D3DSWAPEFFECT_DISCARD;
-	d3dpp.BackBufferFormat = d3ddm.Format;
-
-	LPDIRECT3DDEVICE9 pDevice = nullptr;
-	if (SUCCEEDED(pD3D->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, GetDesktopWindow(), D3DCREATE_SOFTWARE_VERTEXPROCESSING, &d3dpp, &pDevice))) {
-		LOG("Created device successfully.");
-	}
-	else {
-		LOG("ERROR: CreateDevice failed.");
-		LOG("ERROR: Got error ", dwordErrorToString(GetLastError()));
-		return false;
-	}
-
-	// call the original EndScene to ensure we got the right address
-	// this is a sanity check to ensure we're hooking the right function
-	// and that we can call it successfully
-	((void(__stdcall*)(LPDIRECT3DDEVICE9))(hookVars::oEndScene))(pDevice);
-	LOG("EndScene called successfully, sanity check passed.");
-
-	pDevice->Release();
-	pD3D->Release();
+    LOG("EndScene address: 0x", (void*)hookVars::oEndScene);
 
     DWORD protect;
     if (!VirtualProtect((void*)hookVars::oEndScene, TRAMPOLINE_SZ, PAGE_EXECUTE_READWRITE, &protect)) {
         LOG("ERROR: Changing read/write perms on EndScene address failed.");
         LOG("ERROR: Got error", dwordErrorToString(GetLastError()));
+        return false;
     }
-	LOG("VirtualProtect perms changed successfully on EndScene ASM.");
+	LOG("VirtualProtect perms changed successfully on EndScene.");
 
-    memcpy(hookVars::oldEndSceneAsm, (void*)hookVars::oEndScene, TRAMPOLINE_SZ);
+	// print out the first 7 bytes of the original EndScene
+	LOG("Original EndScene bytes:");
+	for (int i = 0; i < 7; i++) {
+		LOG("Byte " + std::to_string(i) + ": 0x", (void*)*((BYTE*)hookVars::oEndScene + i));
+	}
 
-    // sanity check that our bytes match disassembler output from IDA
-    /*for (unsigned int i = 0; i < TRAMPOLINE_SZ; i++) {
-        if (hookVars::oldEndSceneAsm[i] != hookVars::expectedEndSceneAsm[i]) {
-            LOG("ERROR: Getting fn addr for EndScene probably went wrong.");
-            LOG("ERROR: Expected", (void*)hookVars::expectedEndSceneAsm[i], 
-                       "but got ", (void*)hookVars::oldEndSceneAsm[i]);
-            
-            if(!VirtualProtect((void*)hookVars::oEndScene, TRAMPOLINE_SZ, protect, &protect)) {
-                LOG("ERROR: Restoring VirtualProtect perms after comparing EndScene bytes failed.");
-                LOG("ERROR: Got error", dwordErrorToString(GetLastError()));
-            }
-            return false;
-        }
-    }
-	LOG("Sanity check for oldEndSceneAsm == expectedEndSceneAsm passed.");*/
-    
-    // rel addr formula = absolute destination - (current EIP + jmp opcode sz)
-    hookVars::relJmpAddrToHook = (DWORD)&hkEndScene - ((DWORD)hookVars::oEndScene + 5);
-    hookVars::newEndSceneAsm[0] = 0xE9;
-    memcpy(hookVars::newEndSceneAsm + 1, &hookVars::relJmpAddrToHook, sizeof(DWORD));
-    // for jmp in x86 opcode is first byte 0xE9 to denote jmp, 
+	hookVars::trampoline = (BYTE*)VirtualAlloc(NULL, TRAMPOLINE_SZ + JMP_SZ, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+	if (!hookVars::trampoline) {
+		LOG("ERROR: VirtualAlloc failed on creating trampolineAsm.");
+		LOG("ERROR: Got error", dwordErrorToString(GetLastError()));
+		return false;
+	}
+	LOG("Allocated memory for trampolineAsm successfully.");
+
+    DWORD relativeAddress;
+    memcpy(hookVars::trampoline, (void*)hookVars::oEndScene, TRAMPOLINE_SZ);
+	relativeAddress = (hookVars::oEndScene + TRAMPOLINE_SZ) - 
+                      (DWORD)(hookVars::trampoline + TRAMPOLINE_SZ + JMP_SZ);
+	hookVars::trampoline[TRAMPOLINE_SZ] = JMP;
+	memcpy(hookVars::trampoline + TRAMPOLINE_SZ + 1, &relativeAddress, sizeof(DWORD));
+
+    // rel addr = absolute destination - (current EIP + jmp opcode sz)
+    relativeAddress = (DWORD)&hkEndScene - ((DWORD)hookVars::oEndScene + JMP_SZ);
+    // for jmp in x86 first byte is 0xE9 to denote jmp, 
     // and then next 4 bytes for rel addr to jump to
+    memset((void*)hookVars::oEndScene, JMP, sizeof(BYTE));
+    memcpy((void*)(hookVars::oEndScene + 1), &relativeAddress, sizeof(DWORD));
+    
+    // fill the rest with NOPs just in case, shouldnt do anything though
+    memset((BYTE*)hookVars::oEndScene + JMP_SZ, NOP, 2 * sizeof(BYTE));
 
-    // fill the rest with NOPs to ensure valid instruction bounds 
-    // (2 NOPs, 1 byte each, opcode 0x90)
-    memset(hookVars::newEndSceneAsm + 5, 0x90, 2 * sizeof(BYTE));
-
-	memcpy((void*)hookVars::oEndScene, hookVars::newEndSceneAsm, TRAMPOLINE_SZ);
-
-    // sanity check oEndScene == newEndSceneAsm
-    for (unsigned int i = 0; i < TRAMPOLINE_SZ; i++) {
-        if (*((BYTE*)(hookVars::oEndScene)+i) != hookVars::newEndSceneAsm[i]) {
-            LOG("ERROR: oEndScene[", i, "] does not match newEndScene[", i, "] after patching.");
-            // exit(-1);
-        }
-    }
-	LOG("Sanity check for oEndScene == newEndSceneAsm passed.");
-    LOG("Installed hook successfully");
     return true;
 }
 

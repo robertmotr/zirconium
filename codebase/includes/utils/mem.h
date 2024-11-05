@@ -45,7 +45,7 @@ bool patchBytes(BYTE* src, BYTE* dst, unsigned int len);
 * @param bytes Pointer to bytes to execute
 * @param len The number of bytes to execute
 */
-bool execBytes(BYTE* bytes, unsigned int len);
+bool execBytes(BYTE* bytes);
 
 /*
 * Writes n NOP (0x90) instructions to the specified address.
@@ -53,3 +53,13 @@ bool execBytes(BYTE* bytes, unsigned int len);
 * @param n The number of NOP instructions to write.
 */
 bool writeNOP(void* address, unsigned int n);
+
+/*
+* Pauses all threads except the current one.
+*/
+void __stdcall pauseAllThreads();
+
+/*
+* Resumes all threads except the current one.
+*/
+void __stdcall resumeAllThreads();
