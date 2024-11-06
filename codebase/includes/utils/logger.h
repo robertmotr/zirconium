@@ -1,9 +1,32 @@
 #pragma once
 
 #include <string>
+#include <streambuf>
 #include <iostream>
 #include <Windows.h>
 #include <d3d9.h>
+
+class DualOutputBuf : public std::streambuf {
+public:
+    DualOutputBuf(std::streambuf* consoleBuf, std::streambuf* fileBuf)
+        : consoleBuf(consoleBuf), fileBuf(fileBuf) {}
+
+protected:
+    virtual int overflow(int c) override {
+        if (c == EOF) return EOF;
+        if (consoleBuf->sputc(c) == EOF || fileBuf->sputc(c) == EOF) return EOF;
+        return c;
+    }
+
+    virtual int sync() override {
+        if (consoleBuf->pubsync() == -1 || fileBuf->pubsync() == -1) return -1;
+        return 0;
+    }
+
+private:
+    std::streambuf* consoleBuf;
+    std::streambuf* fileBuf;
+};
 
 /*
 * Converts an HRESULT error code to a human-readable std::string.

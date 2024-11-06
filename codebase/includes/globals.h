@@ -91,7 +91,7 @@ namespace guiVars {
 }
 
 namespace hookVars {
-	extern DWORD oEndScene; // original DX9 end scene fn address
+    extern BYTE* oEndScene;
 	extern volatile LPDIRECT3DDEVICE9 pDevice; // IDirect3DDevice9 pointer being used in the target application
     extern BYTE* trampoline;
 }

@@ -54,3 +54,10 @@ void __stdcall startThread(HMODULE hModule);
 	* @return The exception code.
 */
 LONG WINAPI ExceptionHandler(EXCEPTION_POINTERS* ExceptionInfo);
+
+/*
+* Finds the EndScene fn addr by creating a dummy device and getting the vtable.
+    *
+    * @return EndScene's address in process memory as a DWORD otherwise NULL if failed.
+*/
+BYTE* __stdcall findEndScene();

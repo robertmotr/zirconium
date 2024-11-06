@@ -69,7 +69,7 @@ uintptr_t resolveModuleAddress(const char* moduleName, const uintptr_t offset) {
         }
     }
 
-    // offset doesn’t cause overflow (rare but safety)
+    // offset doesnï¿½t cause overflow (rare but safety)
     if (offset > UINTPTR_MAX - moduleBase) {
         LOG("ERROR: Offset is too large and causes overflow.");
         return NULL;
@@ -135,6 +135,7 @@ bool writeNOP(void* address, unsigned int n) {
 * Executes a sequence of bytes.
 * @param bytes Pointer to bytes to execute
 * @param len The number of bytes to execute
+* @param returnAddress The address to jump back to after execution
 */
 bool execBytes(BYTE* bytes) {
     if (bytes == nullptr) {
@@ -211,4 +212,51 @@ void __stdcall resumeAllThreads() {
     }
 
     CloseHandle(hSnapshot);
+}
+
+void checkAddressSegment(void* address) {
+    MEMORY_BASIC_INFORMATION mbi;
+
+    // Query information about the memory region that contains 'address'
+    if (VirtualQuery(address, &mbi, sizeof(mbi))) {
+        LOG("Base Address: %p", mbi.BaseAddress);
+        LOG("Allocation Base: %p", mbi.AllocationBase);
+        LOG("Region Size: %zu bytes", mbi.RegionSize);
+
+        LOG("State: ");
+        switch (mbi.State) {
+        case MEM_COMMIT:
+            LOG("Committed");
+            break;
+        case MEM_FREE:
+            LOG("Free");
+            break;
+        case MEM_RESERVE:
+            LOG("Reserved");
+            break;
+        }
+
+        LOG("Type: ");
+        switch (mbi.Type) {
+        case MEM_IMAGE:
+            LOG("Image (code segment)");
+            break;
+        case MEM_MAPPED:
+            LOG("Mapped");
+            break;
+        case MEM_PRIVATE:
+            LOG("Private (heap, stack, etc.)");
+            break;
+        }
+
+        LOG("Protection: ");
+        if (mbi.Protect & PAGE_EXECUTE) LOG("Execute");
+        if (mbi.Protect & PAGE_EXECUTE_READ) LOG("Execute/Read");
+        if (mbi.Protect & PAGE_EXECUTE_READWRITE) LOG("Execute/Read/Write");
+        if (mbi.Protect & PAGE_READONLY) LOG("Read-Only");
+        if (mbi.Protect & PAGE_READWRITE) LOG("Read/Write");
+    }
+    else {
+        LOG("Failed to query memory information.");
+    }
 }

@@ -42,8 +42,10 @@ bool patchBytes(BYTE* src, BYTE* dst, unsigned int len);
 
 /*
 * Executes a sequence of bytes.
-* @param bytes Pointer to bytes to execute
+* @param instructions Pointer to instructions to be executed
+* @param execRegion The region to execute the instructions in
 * @param len The number of bytes to execute
+* @param returnAddress The address to jump back to after execution
 */
 bool execBytes(BYTE* bytes);
 
@@ -63,3 +65,5 @@ void __stdcall pauseAllThreads();
 * Resumes all threads except the current one.
 */
 void __stdcall resumeAllThreads();
+
+void checkAddressSegment(void* address);

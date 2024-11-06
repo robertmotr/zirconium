@@ -91,11 +91,8 @@ LONG WINAPI ExceptionHandler(EXCEPTION_POINTERS* ExceptionInfo) {
         - The function is marked as `__declspec(naked)` to avoid the compiler generating
         prologue and epilogue code (such as setting up the stack frame). This is essential
         because we're manually manipulating the stack and registers.
-        - The 0x2C offset is specific to the calling convention and the layout of arguments
-        on the stack when EndScene is called. This offset points to the IDirect3DDevice9
-        pointer passed to EndScene. I didn't come up with this asm code as well as finding the offset,
-        credits to the UC posts I've researched and the original author.
 */
+
 __declspec(naked) void __stdcall hkEndScene() {
     LOG("Hooked EndScene called.");
     
@@ -127,7 +124,7 @@ __declspec(naked) void __stdcall hkEndScene() {
 	*
 	* @return EndScene's address in process memory as a DWORD otherwise NULL if failed.
 */
-DWORD findEndScene() {
+BYTE* __stdcall findEndScene() {
     HMODULE hD3D = 0;
     while (!hD3D)
         hD3D = GetModuleHandleA("d3d9.dll");
@@ -135,28 +132,28 @@ DWORD findEndScene() {
 	if (!hD3D) {
 		LOG("ERROR: GetModuleHandleA failed on d3d9.dll.");
 		LOG("ERROR: Got error ", dwordErrorToString(GetLastError()));
-		return NULL;
+        return nullptr;
 	}
 
 	HWND hwnd = GetDesktopWindow();
 	if (hwnd == NULL) {
 		LOG("ERROR: GetDesktopWindow failed.");
 		LOG("ERROR: Got error ", dwordErrorToString(GetLastError()));
-		return NULL;
+        return nullptr;
 	}
 
 	LPDIRECT3D9 pD3D = Direct3DCreate9(D3D_SDK_VERSION);
     if (!pD3D) {
         LOG("ERROR: Direct3DCreate9 failed.");
         LOG("ERROR: Got error ", dwordErrorToString(GetLastError()));
-        return NULL;
+        return nullptr;
     }
 
 	D3DDISPLAYMODE d3ddm;
 	if (FAILED(pD3D->GetAdapterDisplayMode(D3DADAPTER_DEFAULT, &d3ddm))) {
 		LOG("ERROR: GetAdapterDisplayMode failed.");
 		LOG("ERROR: Got error ", dwordErrorToString(GetLastError()));
-		return NULL;
+        return nullptr;
 	}
 
 	D3DPRESENT_PARAMETERS d3dpp = { 0 };
@@ -171,7 +168,7 @@ DWORD findEndScene() {
     else {
         LOG("ERROR: CreateDevice failed.");
         LOG("ERROR: Got error ", dwordErrorToString(GetLastError()));
-        return NULL;
+        return nullptr;
 	}
 
 	DWORD* vTable = (DWORD*)*(DWORD*)pDevice;
@@ -181,7 +178,7 @@ DWORD findEndScene() {
 	pDevice->Release();
 	pD3D->Release();
 
-	return endSceneAddr;
+	return (BYTE*)endSceneAddr;
 }
 
 /*
@@ -190,8 +187,11 @@ DWORD findEndScene() {
     * @return true if successful, false otherwise.
 */
 bool __stdcall installHook() {
+
+	pauseAllThreads();
+
 	hookVars::oEndScene = findEndScene();
-    if (hookVars::oEndScene == NULL) {
+    if (hookVars::oEndScene == nullptr) {
         LOG("ERROR: GetProcAddress failed on getting EndScene.");
         LOG("ERROR: Got error ", dwordErrorToString(GetLastError()));
         return false;
@@ -237,6 +237,8 @@ bool __stdcall installHook() {
     // fill the rest with NOPs just in case, shouldnt do anything though
     memset((BYTE*)hookVars::oEndScene + JMP_SZ, NOP, 2 * sizeof(BYTE));
 
+    LOG("Installed hook successfully");
+    resumeAllThreads();
     return true;
 }
 
@@ -249,7 +251,23 @@ bool __stdcall installHook() {
 void __stdcall startThread(HMODULE hModule) {
     AllocConsole();
     freopen_s(reinterpret_cast<FILE**>(stdout), "CONOUT$", "w", stdout);
+
+    std::string desktopPath = std::getenv("USERPROFILE");
+    desktopPath += "\\Desktop\\output.log";
+    std::ofstream logFile(desktopPath, std::ios::app);
+
+    if (!logFile) {
+        std::cerr << "Failed to open log file on the Desktop." << std::endl;
+        return;
+    }
+
+    DualOutputBuf dualBuf(std::cout.rdbuf(), logFile.rdbuf());
+
+    std::streambuf* originalCoutBuffer = std::cout.rdbuf(&dualBuf);
+    std::streambuf* originalCerrBuffer = std::cerr.rdbuf(&dualBuf);
+
     LOG("Hook thread started, checking process details.");
+    SetUnhandledExceptionFilter(ExceptionHandler);
 
     ULONG64 bitMask = 0;
     if (!GetProcessMitigationPolicy(GetCurrentProcess(), ProcessMitigationOptionsMask, &bitMask, sizeof(ULONG64))) {
@@ -261,7 +279,6 @@ void __stdcall startThread(HMODULE hModule) {
     LOG("----- Process mitigation options: -----\n", mitMaskToString(bitMask));
     LOG("---------------------------------------");
 
-    SetUnhandledExceptionFilter(ExceptionHandler);
     
     if (!installHook()) {
         LOG("Failed to install hook.");
