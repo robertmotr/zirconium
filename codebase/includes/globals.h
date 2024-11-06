@@ -1,18 +1,21 @@
 #pragma once
-
 #include "pch.h"
 
-#define PE_MODULE_NAME "plutonium-bootstrapper-win32.exe"
-#define ENDSCENE_INDEX 42 // EndScene() index in IDirect3DDevice9 vtable
-#define HOOK_SZ        7
-#define JMP_SZ         5
-#define TRAMPOLINE_SZ  HOOK_SZ + JMP_SZ
-#define JMP_OPCODE     0xE9 // only simple jump
-#define NOP_OPCODE     0x90
+#define PE_MODULE_NAME      "plutonium-bootstrapper-win32.exe"
+#define WINDOW_NAME         "Plutonium T6 Zombies (r4060)"
+#define ENDSCENE_INDEX      42 // index of EndScene() in IDirect3DDevice9 vtable
+#define TRAMPOLINE_SZ       7 // # bytes overwritten in oEndScene in order to jmp to our hook (aka trampoline)
+#define JMP_SZ              5
+#define JMP_MODRM_SZ        6
+#define JMP                 0xE9 // jmp opcode
+#define CALL                0xE8 // call opcode
+#define PUSH                0x68 // push opcode
+#define JMP_MODRM           0xFF // jmp modrm opcode
+#define JMP_SHORT           0xEB // jmp short opcode
+#define MODRM_DISP32        0x25 // modrm disp32 opcode
+#define NOP                 0x90 // nop opcode
 
 using MEM_TYPES = std::variant<unsigned int, float, std::string>;
-
-typedef HRESULT(__stdcall* EndScene_t)(LPDIRECT3DDEVICE9 pDevice);
 
 #ifdef _MENU_ONLY
 // Placeholder data for testing without actual game loaded
@@ -89,7 +92,6 @@ namespace guiVars {
 
 namespace hookVars {
     extern BYTE* oEndScene;
-    extern BYTE* endSceneAfterHook;
 	extern volatile LPDIRECT3DDEVICE9 pDevice; // IDirect3DDevice9 pointer being used in the target application
-    extern BYTE oldEndSceneAsm[];
+    extern BYTE* trampoline;
 }

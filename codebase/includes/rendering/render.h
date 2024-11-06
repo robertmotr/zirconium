@@ -8,17 +8,20 @@
 // need to forward declare this for some reason
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-void initMemTable();
+/*
+* Initializes the ImGui memory table with the desired values read from the game.
+*/
+bool __stdcall initMemTable();
 
-void tableSortHelper();
+void __stdcall tableSortHelper();
 
-int compareValues(const MEM_TYPES& a, const MEM_TYPES& b);
+int __stdcall compareValues(const MEM_TYPES& a, const MEM_TYPES& b);
 
 /*
 * Initializes ImGui overlay inside our hook.
 * @return S_OK if successful, E_FAIL otherwise
 */
-HRESULT __stdcall initOverlay(LPDIRECT3DDEVICE9 pDevice);
+bool __stdcall initOverlay(LPDIRECT3DDEVICE9 pDevice);
 
 /*
 * Called every frame within renderOverlay() for the ImGui components displayed within the menu.
@@ -36,5 +39,5 @@ void __stdcall renderOverlay(LPDIRECT3DDEVICE9 pDevice);
 */
 void __stdcall setImGuiStyle();
 
-void showMemoryTable();
+void __stdcall showMemoryTable();
 

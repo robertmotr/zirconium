@@ -46,12 +46,36 @@ uintptr_t patternScan(uintptr_t startAddress, size_t regionSize, const uint8_t* 
 * @return The final calculated address.
 */
 uintptr_t resolveModuleAddress(const char* moduleName, const uintptr_t offset) {
-    uintptr_t moduleBase = reinterpret_cast<uintptr_t>(GetModuleHandleA(moduleName));
-	if (!moduleBase) {
-        LOG("getting module base failed!");
-		return NULL;
+    uintptr_t moduleBase = NULL;
+    if (moduleName == nullptr) {
+        moduleBase = (uintptr_t)GetModuleHandle(NULL);
 	}
-	return moduleBase + offset;
+    else {
+        moduleBase = (uintptr_t)GetModuleHandleA(moduleName);
+    }
+
+    if (!moduleBase) {
+        LOG("ERROR: Failed to get module base address for module: ", moduleName);
+        LOG("ERROR: Error code: ", dwordErrorToString(GetLastError()));
+
+        // Optional: Attempt to load the module dynamically
+        moduleBase = reinterpret_cast<uintptr_t>(LoadLibraryA(moduleName));
+        if (!moduleBase) {
+            LOG("ERROR: Dynamic loading of module also failed.");
+            return NULL; 
+        }
+        else {
+            LOG("Dynamic loading of module succeeded.");
+        }
+    }
+
+    // offset doesn�t cause overflow (rare but safety)
+    if (offset > UINTPTR_MAX - moduleBase) {
+        LOG("ERROR: Offset is too large and causes overflow.");
+        return NULL;
+    }
+
+    return moduleBase + offset;
 }
 
 /*
@@ -113,88 +137,81 @@ bool writeNOP(void* address, unsigned int n) {
 * @param len The number of bytes to execute
 * @param returnAddress The address to jump back to after execution
 */
-void execBytes(BYTE* instructions, void* execRegion, unsigned int len, void* returnAddress) {
-    if (instructions == nullptr || execRegion == nullptr || returnAddress == nullptr) {
-        LOG("ERROR: Provided nullptr as instructions/execRegion/returnAddress argument to execBytes.");
-        return;
+bool execBytes(BYTE* bytes) {
+    if (bytes == nullptr) {
+        LOG("ERROR: Provided nullptr as bytes argument to execBytes.");
+        return false;
     }
 
-    if (len == 0) {
-        LOG("ERROR: Provided 0 as argument to length of bytes to execute");
-        return;
-    }
+    typedef void(__stdcall *ExecFunc)();
+    ExecFunc func = (ExecFunc)bytes;
+	LOG("Executing bytes at address: 0x", (void*)bytes);
+    func();
+    LOG("Executed bytes.");
 
-    LOG("Executing bytes at address: ", execRegion);
-
-    // Step 5: Call the memory to execute the bytes followed by the jump back
-    __asm {
-		jmp [execRegion]
-    }
-    return;
+    return true;
 }
 
 /*
-* Pauses all threads except the current one.
+* Pauses all threads in the current process except the calling thread.
 */
-void pauseAllThreads() {
-    DWORD currentThreadId = GetCurrentThreadId();  // ID of the current thread
-    HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);  // Get snapshot of all threads
-
-    if (snapshot == INVALID_HANDLE_VALUE) {
-        std::cerr << "Failed to create snapshot." << std::endl;
-        return;
-    }
-
-    THREADENTRY32 threadEntry;
-    threadEntry.dwSize = sizeof(THREADENTRY32);
-
-    // Iterate through the list of threads
-    if (Thread32First(snapshot, &threadEntry)) {
-        do {
-            if (threadEntry.th32OwnerProcessID == GetCurrentProcessId() && threadEntry.th32ThreadID != currentThreadId) {
-                // Open the thread for suspend/resume
-                HANDLE thread = OpenThread(THREAD_SUSPEND_RESUME, FALSE, threadEntry.th32ThreadID);
-                if (thread != NULL) {
-                    SuspendThread(thread);  // Suspend the thread
-                    CloseHandle(thread);
-                }
-            }
-        } while (Thread32Next(snapshot, &threadEntry));
-    }
-
-    CloseHandle(snapshot);
-}
-
-/*
-* Resumes all threads except the current one.
-*/
-void resumeAllThreads() {
+void __stdcall pauseAllThreads() {
     DWORD currentThreadId = GetCurrentThreadId();
-    HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
+    DWORD currentProcessId = GetCurrentProcessId();
 
-    if (snapshot == INVALID_HANDLE_VALUE) {
-        std::cerr << "Failed to create snapshot." << std::endl;
+    HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
+    if (hSnapshot == INVALID_HANDLE_VALUE) {
+        std::cerr << "Failed to create snapshot.\n";
         return;
     }
 
     THREADENTRY32 threadEntry;
     threadEntry.dwSize = sizeof(THREADENTRY32);
 
-    // Iterate through the list of threads
-    if (Thread32First(snapshot, &threadEntry)) {
+    if (Thread32First(hSnapshot, &threadEntry)) {
         do {
-            if (threadEntry.th32OwnerProcessID == GetCurrentProcessId() && threadEntry.th32ThreadID != currentThreadId) {
-                // Open the thread for suspend/resume
-                HANDLE thread = OpenThread(THREAD_SUSPEND_RESUME, FALSE, threadEntry.th32ThreadID);
-                if (thread != NULL) {
-                    ResumeThread(thread);  // Resume the thread
-                    CloseHandle(thread);
+            if (threadEntry.th32OwnerProcessID == currentProcessId && threadEntry.th32ThreadID != currentThreadId) {
+                HANDLE hThread = OpenThread(THREAD_SUSPEND_RESUME, FALSE, threadEntry.th32ThreadID);
+                if (hThread) {
+                    SuspendThread(hThread);  
+                    CloseHandle(hThread);
                 }
             }
-        } while (Thread32Next(snapshot, &threadEntry));
+        } while (Thread32Next(hSnapshot, &threadEntry));
     }
 
-    CloseHandle(snapshot);
+    CloseHandle(hSnapshot);
+}
+
+/*
+* Resumes all threads in the current process except the calling thread.
+*/
+void __stdcall resumeAllThreads() {
+    DWORD currentThreadId = GetCurrentThreadId();
+    DWORD currentProcessId = GetCurrentProcessId();
+
+    HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
+    if (hSnapshot == INVALID_HANDLE_VALUE) {
+        std::cerr << "Failed to create snapshot.\n";
+        return;
+    }
+
+    THREADENTRY32 threadEntry;
+    threadEntry.dwSize = sizeof(THREADENTRY32);
+
+    if (Thread32First(hSnapshot, &threadEntry)) {
+        do {
+            if (threadEntry.th32OwnerProcessID == currentProcessId && threadEntry.th32ThreadID != currentThreadId) {
+                HANDLE hThread = OpenThread(THREAD_SUSPEND_RESUME, FALSE, threadEntry.th32ThreadID);
+                if (hThread) {
+                    ResumeThread(hThread);  
+                    CloseHandle(hThread);
+                }
+            }
+        } while (Thread32Next(hSnapshot, &threadEntry));
+    }
+
+    CloseHandle(hSnapshot);
 }
 
 void checkAddressSegment(void* address) {

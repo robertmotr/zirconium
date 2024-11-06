@@ -47,7 +47,7 @@ bool patchBytes(BYTE* src, BYTE* dst, unsigned int len);
 * @param len The number of bytes to execute
 * @param returnAddress The address to jump back to after execution
 */
-void execBytes(BYTE* instructions, void* execRegion, unsigned int len, void* returnAddress);
+bool execBytes(BYTE* bytes);
 
 /*
 * Writes n NOP (0x90) instructions to the specified address.
@@ -59,11 +59,11 @@ bool writeNOP(void* address, unsigned int n);
 /*
 * Pauses all threads except the current one.
 */
-void pauseAllThreads();
+void __stdcall pauseAllThreads();
 
 /*
 * Resumes all threads except the current one.
 */
-void resumeAllThreads();
+void __stdcall resumeAllThreads();
 
 void checkAddressSegment(void* address);

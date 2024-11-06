@@ -3,7 +3,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
-	#define IMGUI_DEFINE_MATH_OPERATORS
+#define IMGUI_DEFINE_MATH_OPERATORS
 #endif
 
 #include <Windows.h>
@@ -42,4 +42,3 @@
 #include "misc/cpp/imgui_stdlib.h"
 
 #include "logger.h"
-

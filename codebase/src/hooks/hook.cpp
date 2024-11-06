@@ -46,7 +46,7 @@ LONG WINAPI ExceptionHandler(EXCEPTION_POINTERS* ExceptionInfo) {
     HANDLE process = GetCurrentProcess();
     HANDLE thread = GetCurrentThread();
 
-    SymInitialize(process, NULL, TRUE);  
+    SymInitialize(process, NULL, TRUE);
     STACKFRAME64 stackFrame;
     memset(&stackFrame, 0, sizeof(STACKFRAME64));
 
@@ -58,7 +58,7 @@ LONG WINAPI ExceptionHandler(EXCEPTION_POINTERS* ExceptionInfo) {
     stackFrame.AddrStack.Mode = AddrModeFlat;
 
     LOG("Stack Trace:");
-    for (int i = 0; i < 10; i++) {  
+    for (int i = 0; i < 10; i++) {
         if (!StackWalk64(IMAGE_FILE_MACHINE_I386, process, thread, &stackFrame, context, NULL,
             SymFunctionTableAccess64, SymGetModuleBase64, NULL)) {
             break;
@@ -66,9 +66,7 @@ LONG WINAPI ExceptionHandler(EXCEPTION_POINTERS* ExceptionInfo) {
 
         LOG("Frame", i, ":", "0x", (void*)stackFrame.AddrPC.Offset);
     }
-    SymCleanup(process);  
-
-	while (1) {} // infinite loop to catch the exception
+    SymCleanup(process);
 
     return EXCEPTION_EXECUTE_HANDLER;
 }
@@ -97,22 +95,27 @@ LONG WINAPI ExceptionHandler(EXCEPTION_POINTERS* ExceptionInfo) {
 
 __declspec(naked) void __stdcall hkEndScene() {
     LOG("Hooked EndScene called.");
-    __asm
-    {
-        mov eax, [esp + 8] // according to IDA pdevice lies at esp + 8
-        mov hookVars::pDevice, eax 
-    }
-    
-    if(hookVars::pDevice != nullptr) {
-        renderOverlay(hookVars::pDevice);
-    }
-    else {
-        LOG("ERROR: Got nullptr for pDevice inside hkEndScene.");
-        // crash here or smth idk
-    }
     
     __asm {
-		jmp [hookVars::oldEndSceneAsm]
+        push esi
+        mov esi, [esp + 8] // determinmed by IDA that this ptr (dword ptr 8 local var) is pDevice
+        mov hookVars::pDevice, esi
+        pop esi
+
+        pushad
+        pushfd
+    }
+
+    if (hookVars::pDevice == nullptr) {
+        LOG("ERROR: pDevice inside hkEndScene is nullptr.");
+        // exit(-1);
+    }
+    renderOverlay(hookVars::pDevice);
+    
+    __asm {
+		popfd
+		popad
+        jmp [hookVars::trampoline] // resume rest of original endscene 
     }
 }
 
@@ -170,7 +173,7 @@ BYTE* __stdcall findEndScene() {
 
 	DWORD* vTable = (DWORD*)*(DWORD*)pDevice;
 	DWORD endSceneAddr = vTable[42];
-	LOG("EndScene address found as: 0x", (void*)endSceneAddr);
+	LOG("EndScene address (dummy method) found as: 0x", (void*)endSceneAddr);
 
 	pDevice->Release();
 	pD3D->Release();
@@ -187,58 +190,52 @@ bool __stdcall installHook() {
 
 	pauseAllThreads();
 
-	BYTE* endSceneAddr = findEndScene();
-    if (endSceneAddr == nullptr) {
+	hookVars::oEndScene = findEndScene();
+    if (hookVars::oEndScene == nullptr) {
         LOG("ERROR: GetProcAddress failed on getting EndScene.");
         LOG("ERROR: Got error ", dwordErrorToString(GetLastError()));
         return false;
     }
-	hookVars::oEndScene = endSceneAddr;
+    LOG("EndScene address: 0x", (void*)hookVars::oEndScene);
 
     DWORD protect;
-    if (!VirtualProtect((void*)endSceneAddr, TRAMPOLINE_SZ, PAGE_EXECUTE_READWRITE, &protect)) {
+    if (!VirtualProtect((void*)hookVars::oEndScene, TRAMPOLINE_SZ, PAGE_EXECUTE_READWRITE, &protect)) {
         LOG("ERROR: Changing read/write perms on EndScene address failed.");
         LOG("ERROR: Got error", dwordErrorToString(GetLastError()));
         return false;
     }
-	LOG("VirtualProtect perms changed successfully on EndScene ASM.");
+	LOG("VirtualProtect perms changed successfully on EndScene.");
 
-    // change permissions for oldEndSceneAsm so we can use it as a trampoline
-    if (!VirtualProtect(hookVars::oldEndSceneAsm, TRAMPOLINE_SZ + JMP_SZ, PAGE_EXECUTE_READWRITE, &protect)) {
-        LOG("ERROR: Unable to change memory permissions at oldEndSceneAsm.");
-        LOG("ERROR: Got error:", dwordErrorToString(GetLastError()));
-        // crash or smth idk
-    }
-    LOG("VirtualProtect perms changed successfully on trampoline ASM array.");
+	// print out the first 7 bytes of the original EndScene
+	LOG("Original EndScene bytes:");
+	for (int i = 0; i < 7; i++) {
+		LOG("Byte " + std::to_string(i) + ": 0x", (void*)*((BYTE*)hookVars::oEndScene + i));
+	}
 
-    // backup oEndScene
-    memcpy(hookVars::oldEndSceneAsm, endSceneAddr, TRAMPOLINE_SZ);
+	hookVars::trampoline = (BYTE*)VirtualAlloc(NULL, TRAMPOLINE_SZ + JMP_SZ, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+	if (!hookVars::trampoline) {
+		LOG("ERROR: VirtualAlloc failed on creating trampolineAsm.");
+		LOG("ERROR: Got error", dwordErrorToString(GetLastError()));
+		return false;
+	}
+	LOG("Allocated memory for trampolineAsm successfully.");
 
-    LOG("Bytes from original EndScene instructions: ");
-    for (int i = 0; i < HOOK_SZ; i++) {
-        LOG("0x", (void*)hookVars::oldEndSceneAsm[i]);
-    }
+    DWORD relativeAddress;
+    memcpy(hookVars::trampoline, (void*)hookVars::oEndScene, TRAMPOLINE_SZ);
+	relativeAddress = (hookVars::oEndScene + TRAMPOLINE_SZ) - 
+                      (DWORD)(hookVars::trampoline + TRAMPOLINE_SZ + JMP_SZ);
+	hookVars::trampoline[TRAMPOLINE_SZ] = JMP;
+	memcpy(hookVars::trampoline + TRAMPOLINE_SZ + 1, &relativeAddress, sizeof(DWORD));
 
-    // overwrite endscene with a jump to hook + 2 NOPs to align with instruction boundaries
-    *endSceneAddr = JMP_OPCODE;
+    // rel addr = absolute destination - (current EIP + jmp opcode sz)
+    relativeAddress = (DWORD)&hkEndScene - ((DWORD)hookVars::oEndScene + JMP_SZ);
+    // for jmp in x86 first byte is 0xE9 to denote jmp, 
+    // and then next 4 bytes for rel addr to jump to
+    memset((void*)hookVars::oEndScene, JMP, sizeof(BYTE));
+    memcpy((void*)(hookVars::oEndScene + 1), &relativeAddress, sizeof(DWORD));
     
-    DWORD relativeJumpToHook = (DWORD)&hkEndScene - (*endSceneAddr + 5);
-    *(DWORD*)(endSceneAddr + 1) = relativeJumpToHook;
-
-    //*(endSceneAddr + 5) = NOP_OPCODE;
-    //*(endSceneAddr + 6) = NOP_OPCODE;
-
-    // print out the bytes we've written to the original EndScene
-    LOG("Bytes written to original EndScene: ");
-    for (int i = 0; i < HOOK_SZ; i++) {
-        LOG("0x", (void*)(*(endSceneAddr + i)));
-    }
-
-    // write the jump such that we jump to oEndScene + TRAMPOLINE_SZ bytes (otherwise, itd be looping infinitely)
-    DWORD relativeJumpToEndScene = (hookVars::oEndScene + TRAMPOLINE_SZ) - 
-                                   (hookVars::oldEndSceneAsm + TRAMPOLINE_SZ + JMP_SZ);
-    hookVars::oldEndSceneAsm[TRAMPOLINE_SZ] = JMP_OPCODE;
-    memcpy(&hookVars::oldEndSceneAsm[TRAMPOLINE_SZ + 1], &relativeJumpToEndScene, sizeof(DWORD));
+    // fill the rest with NOPs just in case, shouldnt do anything though
+    memset((BYTE*)hookVars::oEndScene + JMP_SZ, NOP, 2 * sizeof(BYTE));
 
     LOG("Installed hook successfully");
     resumeAllThreads();
