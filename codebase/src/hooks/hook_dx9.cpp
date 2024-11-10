@@ -1,5 +1,10 @@
 #include "hook.h"
 
+#define HOOK_DX9_CPP_DEPRECATED
+#ifdef HOOK_DX9_CPP_DEPRECATED
+#pragma message("WARNING: This file is deprecated. Use hook_dx11.cpp instead.")
+#else 
+#pragma message("Compiling hook_dx9.cpp...")
 /*
 * Exception handler for catching unhandled exceptions.
     *
@@ -299,3 +304,5 @@ void __stdcall startThread(HMODULE hModule) {
     /*FreeLibraryAndExitThread(hModule, 0);*/
     return;
 }
+
+#endif // HOOK_DX9_CPP_DEPRECATED

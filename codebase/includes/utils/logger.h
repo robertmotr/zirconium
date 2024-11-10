@@ -72,5 +72,17 @@ void __stdcall logHelper(const char* file, int line, Args&&... args) {
     std::cout << std::endl;
 }
 
+/*
+* Converts a pointer to a string as a hex address.
+* @param ptr The pointer to convert.
+* @return std::string representation of the pointer as a hex address.
+*/
+template<typename T>
+std::string __stdcall toHex(T* ptr) {
+	std::stringstream ss;
+	ss << std::hex << ptr;
+	return ss.str();
+}
+
 // Macro to print file, line, and any number of arguments
 #define LOG(...) logHelper(__FILE__, __LINE__, __VA_ARGS__)
