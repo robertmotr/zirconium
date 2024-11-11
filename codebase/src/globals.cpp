@@ -56,7 +56,8 @@ namespace guiVars {
 }
 
 namespace hookVars {
-	DWORD							oEndScene = NULL; // original EndScene function address
-	volatile LPDIRECT3DDEVICE9		pDevice = nullptr; // IDirect3DDevice9 pointer being used in the target application
-	BYTE*							trampoline = nullptr;		
+	BYTE*								oPresent = nullptr;
+	ID3D11Device*						device = nullptr;
+	ID3D11DeviceContext*				deviceContext = nullptr;
+	BYTE*								trampoline = nullptr;		
 }

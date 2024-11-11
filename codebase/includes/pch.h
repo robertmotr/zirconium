@@ -9,8 +9,8 @@
 #include <Windows.h>
 #include <iostream>
 #include <string>
-#include <d3d9.h>
-#include <d3dx9.h>
+#include <dxgi.h>
+#include <d3d11.h>
 #include <cstdio>
 #include <tchar.h>
 #include <vector>
@@ -29,13 +29,13 @@
 #include <cstdlib>
 
 // link dx9 stuff
-#pragma comment(lib, "d3d9.lib")
-#pragma comment(lib, "d3dx9.lib")
+#pragma comment(lib, "d3d11.lib")
+#pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "dbghelp.lib")
 
 // imgui stuff
 #include "imgui.h"
-#include "imgui_impl_dx9.h"
+#include "imgui_impl_dx11.h"
 #include "imgui_impl_win32.h"
 #include "imgui_style.h"
 #include "imgui_internal.h"

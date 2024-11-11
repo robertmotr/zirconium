@@ -3,6 +3,77 @@
 #include "pch.h"
 
 /*
+* Exception handler for catching unhandled exceptions.
+    *
+    * @param ExceptionInfo The exception information.
+    * @return The exception code.
+*/
+LONG WINAPI ExceptionHandler(EXCEPTION_POINTERS* ExceptionInfo) {
+    DWORD exceptionCode = ExceptionInfo->ExceptionRecord->ExceptionCode;
+    void* exceptionAddress = ExceptionInfo->ExceptionRecord->ExceptionAddress;
+    CONTEXT* context = ExceptionInfo->ContextRecord;
+
+    LOG("Exception Code:", "0x", (void*)exceptionCode);
+    LOG("Exception Address:", "0x", (void*)exceptionAddress);
+
+    switch (exceptionCode) {
+    case EXCEPTION_ACCESS_VIOLATION:
+        LOG("Exception: Access Violation");
+        break;
+    case EXCEPTION_ARRAY_BOUNDS_EXCEEDED:
+        LOG("Exception: Array Bounds Exceeded");
+        break;
+    case EXCEPTION_FLT_DIVIDE_BY_ZERO:
+        LOG("Exception: Float Divide by Zero");
+        break;
+    case EXCEPTION_INT_DIVIDE_BY_ZERO:
+        LOG("Exception: Integer Divide by Zero");
+        break;
+    default:
+        LOG("Exception: Unknown");
+        break;
+    }
+
+    LOG("Register State:");
+    LOG("EAX:", "0x", (void*)context->Eax);
+    LOG("EBX:", "0x", (void*)context->Ebx);
+    LOG("ECX:", "0x", (void*)context->Ecx);
+    LOG("EDX:", "0x", (void*)context->Edx);
+    LOG("ESI:", "0x", (void*)context->Esi);
+    LOG("EDI:", "0x", (void*)context->Edi);
+    LOG("EBP:", "0x", (void*)context->Ebp);
+    LOG("ESP:", "0x", (void*)context->Esp);
+    LOG("EIP:", "0x", (void*)context->Eip);
+
+    HANDLE process = GetCurrentProcess();
+    HANDLE thread = GetCurrentThread();
+
+    SymInitialize(process, NULL, TRUE);
+    STACKFRAME64 stackFrame;
+    memset(&stackFrame, 0, sizeof(STACKFRAME64));
+
+    stackFrame.AddrPC.Offset = context->Eip;
+    stackFrame.AddrPC.Mode = AddrModeFlat;
+    stackFrame.AddrFrame.Offset = context->Ebp;
+    stackFrame.AddrFrame.Mode = AddrModeFlat;
+    stackFrame.AddrStack.Offset = context->Esp;
+    stackFrame.AddrStack.Mode = AddrModeFlat;
+
+    LOG("Stack Trace:");
+    for (int i = 0; i < 10; i++) {
+        if (!StackWalk64(IMAGE_FILE_MACHINE_I386, process, thread, &stackFrame, context, NULL,
+            SymFunctionTableAccess64, SymGetModuleBase64, NULL)) {
+            break;
+        }
+
+        LOG("Frame", i, ":", "0x", (void*)stackFrame.AddrPC.Offset);
+    }
+    SymCleanup(process);
+
+    return EXCEPTION_EXECUTE_HANDLER;
+}
+
+/*
 * Compares a pattern to a specified memory region.
     *
     * @param data The memory region to search.

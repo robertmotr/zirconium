@@ -21,7 +21,7 @@ int __stdcall compareValues(const MEM_TYPES& a, const MEM_TYPES& b);
 * Initializes ImGui overlay inside our hook.
 * @return S_OK if successful, E_FAIL otherwise
 */
-bool __stdcall initOverlay(LPDIRECT3DDEVICE9 pDevice);
+bool __stdcall initOverlay(ID3D11Device* device, ID3D11DeviceContext* deviceContext);
 
 /*
 * Called every frame within renderOverlay() for the ImGui components displayed within the menu.
@@ -31,7 +31,7 @@ void __stdcall renderContent();
 /*
 * Called every frame to render the ImGui overlay from inside our hook.
 */
-void __stdcall renderOverlay(LPDIRECT3DDEVICE9 pDevice);
+void __stdcall renderOverlay(ID3D11Device* device, ID3D11DeviceContext* deviceContext);
 
 /*
 * Style the ImGui overlay. 

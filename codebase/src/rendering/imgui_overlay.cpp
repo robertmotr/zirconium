@@ -390,7 +390,7 @@ void __stdcall showMemoryTable() {
 	* @param pDevice the Direct3D device in the target application to render the overlay on
 	* @return S_OK if successful, E_FAIL otherwise
 */
-bool __stdcall initOverlay(LPDIRECT3DDEVICE9 pDevice) {
+bool __stdcall initOverlay(ID3D11Device *device, ID3D11DeviceContext *deviceContext) {
     LOG("Initializing ImGui...");
     renderVars::initialized = true;
     
@@ -434,7 +434,7 @@ bool __stdcall initOverlay(LPDIRECT3DDEVICE9 pDevice) {
         LOG("ImGui_ImplWin32_Init failed.");
         return false;
     }
-    if (!ImGui_ImplDX9_Init(pDevice)) {
+    if (!ImGui_ImplDX11_Init(device, deviceContext)) {
         LOG("ImGui_ImplDX9_Init failed.");
         return false;
     }
@@ -534,10 +534,10 @@ void __stdcall renderContent() {
 /*
 * Called every frame to render the ImGui overlay from inside our hook.
 */
-void __stdcall renderOverlay(LPDIRECT3DDEVICE9 pDevice) {
+void __stdcall renderOverlay(ID3D11Device* device, ID3D11DeviceContext* deviceContext) {
 
     if (!renderVars::initialized) {
-        if (!initOverlay(pDevice)) {
+        if (!initOverlay(device, deviceContext)) {
             LOG("ERROR: Couldn't initialize ImGui overlay.");
             while (1);
         }
@@ -559,7 +559,7 @@ void __stdcall renderOverlay(LPDIRECT3DDEVICE9 pDevice) {
     renderVars::io->MouseDown[2] = GetAsyncKeyState(VK_MBUTTON) & 0x8000;
 #endif
 
-    ImGui_ImplDX9_NewFrame();
+    ImGui_ImplDX11_NewFrame();
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
 
@@ -568,5 +568,5 @@ void __stdcall renderOverlay(LPDIRECT3DDEVICE9 pDevice) {
 
     ImGui::EndFrame();
     ImGui::Render();
-    ImGui_ImplDX9_RenderDrawData(ImGui::GetDrawData());
+    ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 }

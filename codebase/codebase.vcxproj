@@ -224,12 +224,11 @@
     <ClCompile Include="external\imgui\imgui_tables.cpp" />
     <ClCompile Include="external\imgui\imgui_widgets.cpp" />
     <ClCompile Include="external\imgui\misc\cpp\imgui_stdlib.cpp" />
-    <ClCompile Include="hook_dx11.cpp" />
     <ClCompile Include="src\dll_main.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='MenuOnly|Win32'">Use</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="src\globals.cpp" />
-    <ClCompile Include="src\hooks\hook_dx9.cpp">
+    <ClCompile Include="src\hooks\hook_dx11.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='MenuOnly|Win32'">Use</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="src\pch.cpp">

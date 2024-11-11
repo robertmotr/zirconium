@@ -79,9 +79,13 @@ void __stdcall logHelper(const char* file, int line, Args&&... args) {
 */
 template<typename T>
 std::string __stdcall toHex(T* ptr) {
-	std::stringstream ss;
-	ss << std::hex << ptr;
-	return ss.str();
+    std::string str;
+	str += "0x";
+
+	std::stringstream stream;
+	stream << std::hex << ptr;
+	str += stream.str();
+	return str;
 }
 
 // Macro to print file, line, and any number of arguments

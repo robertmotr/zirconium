@@ -1,12 +1,10 @@
 #pragma once
 #include "pch.h"
 
-#define PE_MODULE_NAME      "plutonium-bootstrapper-win32.exe"
-#define WINDOW_NAME         "Plutonium T6 Zombies (r4060)"
-#define ENDSCENE_INDEX      42 // index of EndScene() in IDirect3DDevice9 vtable
-#define TRAMPOLINE_SZ       7 // # bytes overwritten in oEndScene in order to jmp to our hook (aka trampoline)
-#define JMP_SZ              5
-#define JMP_MODRM_SZ        6
+#define PE_MODULE_NAME      "plutonium-bootstrapper-win32.exe" // name of the module to hook
+#define WINDOW_NAME         "Plutonium T6 Zombies (r4060)" // name of the window to hook
+#define JMP_SZ              5 // jmp size
+#define JMP_MODRM_SZ        6 // jmp modrm size
 #define JMP                 0xE9 // jmp opcode
 #define CALL                0xE8 // call opcode
 #define PUSH                0x68 // push opcode
@@ -91,7 +89,8 @@ namespace guiVars {
 }
 
 namespace hookVars {
-    extern BYTE* oEndScene;
-	extern volatile LPDIRECT3DDEVICE9 pDevice; // IDirect3DDevice9 pointer being used in the target application
+    extern BYTE* oPresent;
+	extern ID3D11Device* device;
+	extern ID3D11DeviceContext* deviceContext;
     extern BYTE* trampoline;
 }
