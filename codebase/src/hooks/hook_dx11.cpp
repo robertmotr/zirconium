@@ -1,16 +1,16 @@
 #include "hook.h"
-#include "mem.h"
 #include <d3d11.h>
 #include <dxgi.h>
 
-// dummy window procedure
+// Dummy window procedure
 LRESULT CALLBACK dummyWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     return DefWindowProc(hWnd, msg, wParam, lParam);
 }
 
 /*
 * This function creates a dummy window and a swap chain to get the address of the Present function.
-* @return the address of the Present function*/
+* @return the address of the Present function
+*/
 static void* getPresentAddress() {
     WNDCLASS wc = { 0 };
     wc.lpfnWndProc = dummyWndProc;
@@ -63,10 +63,22 @@ static void* getPresentAddress() {
 */
 __declspec(naked) void __stdcall hookedPresent(IDXGISwapChain* swapChain, UINT SyncInterval, UINT Flags) {
     LOG("Hooked IDXGISwapChain::Present called");
-
     __asm {
-        pushad
-		pushfd
+        pushad                
+        pushfd       
+
+        mov eax, [esp + 36 + 4]
+		mov swapChain, eax
+
+		mov eax, [esp + 36 + 8]
+		mov SyncInterval, eax
+
+		mov eax, [esp + 36 + 0Ch]
+		mov Flags, eax
+    }
+
+    if (!swapChain) {
+		LOG("ERROR: Swap chain is null.");
     }
 
     if (!hookVars::device || !hookVars::deviceContext) {
@@ -83,20 +95,20 @@ __declspec(naked) void __stdcall hookedPresent(IDXGISwapChain* swapChain, UINT S
                 LOG("ERROR: Failed to get device.");
             }
             pBackBuffer->Release();
-            LOG("Successfully got device and device context through buffer.");
+            LOG("Successfully got device and device context.");
         }
         else {
-			LOG("ERROR: Failed to get back buffer.");
+            LOG("ERROR: Failed to get back buffer.");
         }
     }
 
+    LOG("Calling renderOverlay.");
     renderOverlay(hookVars::device, hookVars::deviceContext);
 
     __asm {
-        popfd
-        popad
-
-        jmp [hookVars::trampoline]
+        popfd                 // restore flags
+        popad                 // restore all general-purpose registers
+        jmp [hookVars::trampoline]  // continue execution of Present
     }
 }
 
@@ -106,33 +118,34 @@ __declspec(naked) void __stdcall hookedPresent(IDXGISwapChain* swapChain, UINT S
 */
 static bool __stdcall installHook() {
     pauseAllThreads();
+    LOG("Paused threads.");
 
     hookVars::oPresent = (BYTE*)getPresentAddress();
     if (!hookVars::oPresent) {
         LOG("ERROR: Failed to get Present address.");
         return false;
     }
-    
-    hookVars::trampoline = (BYTE*)VirtualAlloc(nullptr, JMP_SZ + 10, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+
+    hookVars::trampoline = (BYTE*)VirtualAlloc(nullptr, 2 * JMP_SZ, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
     if (!hookVars::trampoline) {
         LOG("ERROR: VirtualAlloc failed for the trampoline.");
         return false;
     }
 
+    // copy the overwritten bytes from Present to the trampoline
     memcpy(hookVars::trampoline, hookVars::oPresent, JMP_SZ);
 
-    // jump from the trampoline back to the original function + 5 bytes after the jump patch
+    // relative address for the trampoline jump back
+    DWORD trampolineBackAddr = ((DWORD)hookVars::oPresent + JMP_SZ) - ((DWORD)hookVars::trampoline + JMP_SZ + 5);
     hookVars::trampoline[JMP_SZ] = JMP;
-    memset(hookVars::trampoline + JMP_SZ + 1, 
-          ((DWORD)hookVars::oPresent + JMP_SZ) - 
-          ((DWORD)hookVars::trampoline + 2 * JMP_SZ), sizeof(DWORD));
+    memcpy(hookVars::trampoline + JMP_SZ + 1, &trampolineBackAddr, sizeof(DWORD));
 
     // overwrite the first bytes of Present with a jump to our hook
     DWORD oldProtect;
     if (VirtualProtect(hookVars::oPresent, JMP_SZ, PAGE_EXECUTE_READWRITE, &oldProtect)) {
+        DWORD hookRelativeAddr = (DWORD)&hookedPresent - ((DWORD)hookVars::oPresent + JMP_SZ);
         *(BYTE*)hookVars::oPresent = JMP;
-        memset((BYTE*)hookVars::oPresent + 1, 
-               (DWORD)&hookedPresent - ((DWORD)hookVars::oPresent + JMP_SZ), sizeof(DWORD));
+        memcpy((BYTE*)hookVars::oPresent + 1, &hookRelativeAddr, sizeof(DWORD));
     }
     else {
         LOG("ERROR: Failed to change memory protection on Present.");
@@ -141,6 +154,7 @@ static bool __stdcall installHook() {
 
     LOG("Trampoline hook installed successfully.");
     resumeAllThreads();
+    LOG("Resumed threads.");
     return true;
 }
 

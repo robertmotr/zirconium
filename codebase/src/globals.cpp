@@ -1,5 +1,4 @@
 #include "globals.h" 
-#include "mem.h"
 
 namespace gameVars {
 	std::vector<std::string> bones = {
