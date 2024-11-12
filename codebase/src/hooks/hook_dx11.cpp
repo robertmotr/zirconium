@@ -69,13 +69,13 @@ __declspec(naked) void __stdcall hookedPresent(IDXGISwapChain* swapChain, UINT S
         pushfd       
 
         push eax
-		mov eax, [esp + 44] // swapChain
+		mov eax, [esp + 0x2C] // swapChain
 		mov swapChain, eax
 
-		mov eax, [esp + 48] // syncinterval
+		mov eax, [esp + 0x30] // syncinterval
 		mov SyncInterval, eax
 
-		mov eax, [esp + 52] // flags
+		mov eax, [esp + 0x34] // flags
 		mov Flags, eax
         pop eax
     }
