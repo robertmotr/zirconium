@@ -27,7 +27,6 @@
 #include <dbghelp.h>
 #include <fstream>
 #include <cstdlib>
-
 // link dx9 stuff
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "dxgi.lib")

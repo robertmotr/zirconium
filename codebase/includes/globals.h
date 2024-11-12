@@ -3,6 +3,8 @@
 
 #define PE_MODULE_NAME      "plutonium-bootstrapper-win32.exe" // name of the module to hook
 #define WINDOW_NAME         "Plutonium T6 Zombies (r4060)" // name of the window to hook
+#define TRAMPOLINE_SZ       5 // size of the trampoline (bytes we overwrote, so 5)
+#define PRESENT_INDEX       8 // index 8 for Present in IDXGISwapChain vmt
 #define JMP_SZ              5 // jmp size
 #define JMP_MODRM_SZ        6 // jmp modrm size
 #define JMP                 0xE9 // jmp opcode
@@ -67,10 +69,8 @@ namespace renderVars {
 	extern bool initialized; // check if ImGui is initialized
 	extern ImGuiIO* io; // stored globally to reduce overhead inside renderOverlay
 	extern ImGuiContext* ctx; // same as above
-	extern LPDIRECT3DDEVICE9 g_pDevice;
 	extern HWND g_hwnd;
 	extern RECT rect; // for smart menu resizing, also to reduce overhead
-	extern D3DPRESENT_PARAMETERS* g_pD3DPP;
 }
 
 // for actual ImGui content

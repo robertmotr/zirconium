@@ -4,7 +4,6 @@
 #include <streambuf>
 #include <iostream>
 #include <Windows.h>
-#include <d3d9.h>
 
 class DualOutputBuf : public std::streambuf {
 public:

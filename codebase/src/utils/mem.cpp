@@ -98,10 +98,6 @@ bool patchBytes(BYTE *src, BYTE *dst, unsigned int len) {
         LOG("ERROR: Provided 0 as argument to length of bytes to patch.");
         return false;
     }
-
-    PMEMORY_BASIC_INFORMATION srcDetails;
-    PMEMORY_BASIC_INFORMATION dstDetails;
-    // TODO
 }
 
 /*

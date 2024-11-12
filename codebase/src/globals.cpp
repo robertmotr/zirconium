@@ -26,10 +26,8 @@ namespace renderVars {
 	bool                            initialized = false; // check if ImGui is initialized
 	ImGuiIO*						io = nullptr; // stored globally to reduce overhead inside renderOverlay
 	ImGuiContext*					ctx = nullptr; // stored globally to reduce overhead inside renderOverlay
-	LPDIRECT3DDEVICE9               g_pDevice = nullptr;
 	HWND                            g_hwnd = nullptr; // background window we're running on top of
 	RECT                            rect = {}; // used for dynamically checking if wnd was resized
-	D3DPRESENT_PARAMETERS*			g_pD3DPP = nullptr;
 }
 
 // guiVars on the other hand are globals we'll be using often for showing content and/or menu logic

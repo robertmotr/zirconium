@@ -24,23 +24,10 @@ std::string __stdcall HresultErrorToString(HRESULT hr) {
         std::string message(errorMsg);
         LocalFree(errorMsg);
         return message;
-    }
-
-    // If no system error message was found, check for DirectX-specific errors
-    switch (hr) {
-    case D3DERR_DEVICELOST:
-        return "D3DERR_DEVICELOST: The device has been lost.";
-    case D3DERR_DEVICENOTRESET:
-        return "D3DERR_DEVICENOTRESET: The device cannot be reset.";
-    case D3DERR_DRIVERINTERNALERROR:
-        return "D3DERR_DRIVERINTERNALERROR: Internal driver error.";
-    case D3DERR_INVALIDCALL:
-        return "D3DERR_INVALIDCALL: Invalid function call.";
-    case D3DERR_OUTOFVIDEOMEMORY:
-        return "D3DERR_OUTOFVIDEOMEMORY: Out of video memory.";
-    default:
-        return "Unknown error.";
-    }
+	}
+	else {
+		return "Unknown error";
+	}
 }
 
 /*

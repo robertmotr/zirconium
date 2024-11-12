@@ -47,7 +47,7 @@ static void* getPresentAddress() {
     }
 
     void** vmt = *(void***)pSwapChain;
-    void* presentAddr = vmt[8]; // index 8 for Present in IDXGISwapChain vmt
+    void* presentAddr = vmt[PRESENT_INDEX]; 
 
     pSwapChain->Release();
     pDevice->Release();
@@ -63,25 +63,34 @@ static void* getPresentAddress() {
 */
 __declspec(naked) void __stdcall hookedPresent(IDXGISwapChain* swapChain, UINT SyncInterval, UINT Flags) {
     LOG("Hooked IDXGISwapChain::Present called");
+
     __asm {
         pushad                
         pushfd       
 
-        mov eax, [esp + 36 + 4]
+        push eax
+		mov eax, [esp + 44] // swapChain
 		mov swapChain, eax
 
-		mov eax, [esp + 36 + 8]
+		mov eax, [esp + 48] // syncinterval
 		mov SyncInterval, eax
 
-		mov eax, [esp + 36 + 0Ch]
+		mov eax, [esp + 52] // flags
 		mov Flags, eax
+        pop eax
     }
 
-    if (!swapChain) {
+    if (swapChain == nullptr) {
 		LOG("ERROR: Swap chain is null.");
     }
 
+    LOG("swapChain:", swapChain);
+    LOG("SyncInterval:", SyncInterval);
+    LOG("Flags:", Flags);
+
+
     if (!hookVars::device || !hookVars::deviceContext) {
+		LOG("Getting device and device context.");
         ID3D11Texture2D* pBackBuffer = nullptr;
         if (SUCCEEDED(swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&pBackBuffer))) {
             pBackBuffer->GetDevice(&hookVars::device);
@@ -105,6 +114,7 @@ __declspec(naked) void __stdcall hookedPresent(IDXGISwapChain* swapChain, UINT S
     LOG("Calling renderOverlay.");
     renderOverlay(hookVars::device, hookVars::deviceContext);
 
+    LOG("renderOverlay passed, jumping to trampoline.");
     __asm {
         popfd                 // restore flags
         popad                 // restore all general-purpose registers
@@ -118,7 +128,6 @@ __declspec(naked) void __stdcall hookedPresent(IDXGISwapChain* swapChain, UINT S
 */
 static bool __stdcall installHook() {
     pauseAllThreads();
-    LOG("Paused threads.");
 
     hookVars::oPresent = (BYTE*)getPresentAddress();
     if (!hookVars::oPresent) {
@@ -126,35 +135,35 @@ static bool __stdcall installHook() {
         return false;
     }
 
-    hookVars::trampoline = (BYTE*)VirtualAlloc(nullptr, 2 * JMP_SZ, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+    // enough to hold the overwritten bytes + a jump back to the original fn
+    hookVars::trampoline = (BYTE*)VirtualAlloc(nullptr, TRAMPOLINE_SZ + JMP_SZ , MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
     if (!hookVars::trampoline) {
         LOG("ERROR: VirtualAlloc failed for the trampoline.");
         return false;
     }
 
     // copy the overwritten bytes from Present to the trampoline
-    memcpy(hookVars::trampoline, hookVars::oPresent, JMP_SZ);
+    memcpy(hookVars::trampoline, hookVars::oPresent, TRAMPOLINE_SZ);
 
     // relative address for the trampoline jump back
-    DWORD trampolineBackAddr = ((DWORD)hookVars::oPresent + JMP_SZ) - ((DWORD)hookVars::trampoline + JMP_SZ + 5);
+    DWORD trampolineBackAddr = ((DWORD)hookVars::oPresent + TRAMPOLINE_SZ) - ((DWORD)hookVars::trampoline + JMP_SZ + TRAMPOLINE_SZ);
     hookVars::trampoline[JMP_SZ] = JMP;
     memcpy(hookVars::trampoline + JMP_SZ + 1, &trampolineBackAddr, sizeof(DWORD));
 
     // overwrite the first bytes of Present with a jump to our hook
     DWORD oldProtect;
-    if (VirtualProtect(hookVars::oPresent, JMP_SZ, PAGE_EXECUTE_READWRITE, &oldProtect)) {
+    if (VirtualProtect(hookVars::oPresent, TRAMPOLINE_SZ, PAGE_EXECUTE_READWRITE, &oldProtect)) {
         DWORD hookRelativeAddr = (DWORD)&hookedPresent - ((DWORD)hookVars::oPresent + JMP_SZ);
         *(BYTE*)hookVars::oPresent = JMP;
         memcpy((BYTE*)hookVars::oPresent + 1, &hookRelativeAddr, sizeof(DWORD));
+        VirtualProtect(hookVars::oPresent, TRAMPOLINE_SZ, oldProtect, &oldProtect);
     }
     else {
         LOG("ERROR: Failed to change memory protection on Present.");
         return false;
     }
 
-    LOG("Trampoline hook installed successfully.");
     resumeAllThreads();
-    LOG("Resumed threads.");
     return true;
 }
 
@@ -171,7 +180,7 @@ void __stdcall startThread(HMODULE hModule) {
     std::ofstream logFile(desktopPath, std::ios::app);
 
     if (!logFile) {
-        std::cerr << "Failed to open log file on the Desktop." << std::endl;
+        LOG("ERROR: Failed to open log file on the Desktop.");
         return;
     }
 
@@ -195,5 +204,5 @@ void __stdcall startThread(HMODULE hModule) {
         LOG("Failed to install hook.");
         return;
     }
-    LOG("Hook installed successfully.");
+    while (1);
 }

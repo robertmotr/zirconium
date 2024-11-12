@@ -388,15 +388,24 @@ void __stdcall showMemoryTable() {
 /*
 	* Initializes ImGui overlay inside our hook.
 	* @param pDevice the Direct3D device in the target application to render the overlay on
-	* @return S_OK if successful, E_FAIL otherwise
+	* @return true on success, false otherwise
 */
 bool __stdcall initOverlay(ID3D11Device *device, ID3D11DeviceContext *deviceContext) {
+	if (renderVars::initialized) {
+		return true;
+	}
+	else if (!device || !deviceContext) {
+		LOG("ERROR: Invalid device or device context.");
+		return false;
+	}
+    
+    
     LOG("Initializing ImGui...");
     renderVars::initialized = true;
     
     // TODO
     // this ideally should be more robust since the name could change...
-    renderVars::g_hwnd = FindWindowA(NULL, "Plutonium T6 Zombies (r4060)");
+    renderVars::g_hwnd = FindWindowA(NULL, WINDOW_NAME);
     if (!renderVars::g_hwnd) {
         LOG("Failed to find game window.");
         return false;
@@ -440,12 +449,12 @@ bool __stdcall initOverlay(ID3D11Device *device, ID3D11DeviceContext *deviceCont
     }
     LOG("ImGui initialized successfully.");
 
-    LOG("Initializing memory table...");
-    if (!initMemTable()) {
-		LOG("Failed to initialize memory table.");
-		return false;
-    }
-    LOG("Memory table initialized successfully");
+  //  LOG("Initializing memory table...");
+  ////  if (!initMemTable()) {
+		////LOG("Failed to initialize memory table.");
+		////return false;
+  ////  }
+  //  LOG("Memory table initialized successfully");
     return true;
 }
 
@@ -508,7 +517,7 @@ void __stdcall renderContent() {
 			EndTabItem();
 		}
 		if (BeginTabItem("Memory")) {
-            showMemoryTable();
+            /*showMemoryTable();*/
 			EndTabItem();
 		}
         if (BeginTabItem("Debug")) {
@@ -539,17 +548,19 @@ void __stdcall renderOverlay(ID3D11Device* device, ID3D11DeviceContext* deviceCo
     if (!renderVars::initialized) {
         if (!initOverlay(device, deviceContext)) {
             LOG("ERROR: Couldn't initialize ImGui overlay.");
-            while (1);
         }
         LOG("Initialized ImGui overlay.");
     }
 
+    LOG("Getting ClientRect...");
     if (!GetClientRect(renderVars::g_hwnd, &renderVars::rect)) {
-		LOG("Failed to get client rect.");
-        while (1);
+		LOG("ERROR: Failed to get client rect.");
     }
+	LOG("Got ClientRect.");
+	LOG("Getting DisplaySize...");
     renderVars::io->DisplaySize = ImVec2((float)(renderVars::rect.right - renderVars::rect.left),
         (float)(renderVars::rect.bottom - renderVars::rect.top));
+    LOG("Got DisplaySize.");
 
 #ifndef _MENU_ONLY
     // this needs to be done every frame in order to have responsive input (e.g. for buttons to work when clicked)
@@ -559,14 +570,19 @@ void __stdcall renderOverlay(ID3D11Device* device, ID3D11DeviceContext* deviceCo
     renderVars::io->MouseDown[2] = GetAsyncKeyState(VK_MBUTTON) & 0x8000;
 #endif
 
+    LOG("Got here 1.");
     ImGui_ImplDX11_NewFrame();
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
 
+    LOG("Rendered new frame 2.");
     // buttons, text, etc.
     renderContent();
+
+    LOG("RenderContent passed.");
 
     ImGui::EndFrame();
     ImGui::Render();
     ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+    LOG("showed data.");
 }
