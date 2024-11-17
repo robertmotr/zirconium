@@ -62,62 +62,85 @@ static void* getPresentAddress() {
 * Custom Present function that will be called instead of the original Present function.
 */
 __declspec(naked) void __stdcall hookedPresent(IDXGISwapChain* swapChain, UINT SyncInterval, UINT Flags) {
-    LOG("Hooked IDXGISwapChain::Present called");
-
+	/* IDA disassembly of CDGXISwapChain::Present:
+    dxgi.dll:6A85E1F0 ; Attributes: bp-based frame fuzzy-sp
+    dxgi.dll:6A85E1F0 ; public: virtual long __stdcall CDXGISwapChain::Present(unsigned int, unsigned int)
+    dxgi.dll:6A85E1F0 ?Present@CDXGISwapChain@@UAGJII@Z proc near
+    dxgi.dll:6A85E1F0
+    dxgi.dll:6A85E1F0 var_3C          = dword ptr -3Ch
+    dxgi.dll:6A85E1F0 var_38          = byte ptr -38h
+    dxgi.dll:6A85E1F0 var_34          = dword ptr -34h
+    dxgi.dll:6A85E1F0 var_30          = byte ptr -30h
+    dxgi.dll:6A85E1F0 var_2C          = byte ptr -2Ch
+    dxgi.dll:6A85E1F0 var_4           = dword ptr -4
+    dxgi.dll:6A85E1F0 arg_0           = dword ptr  8 // member function 'this' ptr (swapChain)
+	dxgi.dll:6A85E1F0 arg_4           = dword ptr  0Ch // SyncInterval
+	dxgi.dll:6A85E1F0 arg_8           = dword ptr  10h // Flags
+    dxgi.dll:6A85E1F0
+    dxgi.dll:6A85E1F0                 mov     edi, edi        ; CODE XREF: [thunk]:CDXGISwapChain::Present`adjustor{56}' (uint,uint)
+    dxgi.dll:6A85E1F2                 push    ebp
+    dxgi.dll:6A85E1F3                 mov     ebp, esp
+    dxgi.dll:6A85E1F5                 and     esp, 0FFFFFFF8h
+    
+	REMEMBER: first 5 bytes are overwritten, these are the original instructions
+    */
+    
     __asm {
+        push ebp
+        mov ebp, esp 
+        sub esp, 0x10 
+
+        push ebx 
+		push ecx
+
+		mov eax, [ebp + 0x8] // swapChain
+		mov ebx, [ebp + 0xC] // SyncInterval
+		mov ecx, [ebp + 0x10] // Flags
+
         pushad                
         pushfd       
-
-        push eax
-		mov eax, [esp + 0x2C] // swapChain
-		mov swapChain, eax
-
-		mov eax, [esp + 0x30] // syncinterval
-		mov SyncInterval, eax
-
-		mov eax, [esp + 0x34] // flags
-		mov Flags, eax
-        pop eax
     }
 
     if (swapChain == nullptr) {
 		LOG("ERROR: Swap chain is null.");
     }
 
-    LOG("swapChain:", swapChain);
-    LOG("SyncInterval:", SyncInterval);
-    LOG("Flags:", Flags);
-
-
     if (!hookVars::device || !hookVars::deviceContext) {
 		LOG("Getting device and device context.");
         ID3D11Texture2D* pBackBuffer = nullptr;
         if (SUCCEEDED(swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&pBackBuffer))) {
+            if (pBackBuffer == nullptr) {
+                LOG("ERROR: Failed to get back buffer (nullptr).");
+            }
+            
             pBackBuffer->GetDevice(&hookVars::device);
-            if (hookVars::device) {
-                hookVars::device->GetImmediateContext(&hookVars::deviceContext);
-                if (!hookVars::deviceContext) {
-                    LOG("ERROR: Failed to get device context.");
-                }
+            if (hookVars::device == nullptr) {
+                LOG("ERROR: Failed to get device context (nullptr)");
             }
-            else {
-                LOG("ERROR: Failed to get device.");
-            }
+            hookVars::device->GetImmediateContext(&hookVars::deviceContext);
+			if (hookVars::deviceContext == nullptr) {
+				LOG("ERROR: Failed to get device context.");
+			}
             pBackBuffer->Release();
             LOG("Successfully got device and device context.");
         }
         else {
-            LOG("ERROR: Failed to get back buffer.");
+            LOG("ERROR: Failed to get back buffer. GetBuffer() returned an error.");
         }
     }
 
-    LOG("Calling renderOverlay.");
     renderOverlay(hookVars::device, hookVars::deviceContext);
 
-    LOG("renderOverlay passed, jumping to trampoline.");
     __asm {
         popfd                 // restore flags
         popad                 // restore all general-purpose registers
+
+		pop ecx
+		pop ebx
+
+        // fn epilogue
+        mov esp, ebp 
+        pop ebp 
         jmp [hookVars::trampoline]  // continue execution of Present
     }
 }
@@ -154,7 +177,7 @@ static bool __stdcall installHook() {
     DWORD oldProtect;
     if (VirtualProtect(hookVars::oPresent, TRAMPOLINE_SZ, PAGE_EXECUTE_READWRITE, &oldProtect)) {
         DWORD hookRelativeAddr = (DWORD)&hookedPresent - ((DWORD)hookVars::oPresent + JMP_SZ);
-        *(BYTE*)hookVars::oPresent = JMP;
+        hookVars::oPresent[0] = JMP;
         memcpy((BYTE*)hookVars::oPresent + 1, &hookRelativeAddr, sizeof(DWORD));
         VirtualProtect(hookVars::oPresent, TRAMPOLINE_SZ, oldProtect, &oldProtect);
     }
@@ -162,6 +185,26 @@ static bool __stdcall installHook() {
         LOG("ERROR: Failed to change memory protection on Present.");
         return false;
     }
+    _mm_sfence();
+	FlushInstructionCache(GetCurrentProcess(), hookVars::oPresent, TRAMPOLINE_SZ);
+	FlushInstructionCache(GetCurrentProcess(), hookVars::trampoline, TRAMPOLINE_SZ + JMP_SZ);
+
+    // print trampoline addr, etc
+	LOG("Trampoline address:", (void*)hookVars::trampoline);
+	LOG("Original Present address:", (void*)hookVars::oPresent);
+	LOG("Hooked Present address:", &hookedPresent);
+
+    // print trampoline instructions
+	LOG("Trampoline instructions:");
+	for (int i = 0; i < TRAMPOLINE_SZ; i++) {
+		LOG("0x", (void*)hookVars::trampoline[i]);
+	}
+
+	// print new Present instructions
+	LOG("New Present instructions:");
+	for (int i = 0; i < TRAMPOLINE_SZ; i++) {
+		LOG("0x", (void*)hookVars::oPresent[i]);
+	}
 
     resumeAllThreads();
     return true;

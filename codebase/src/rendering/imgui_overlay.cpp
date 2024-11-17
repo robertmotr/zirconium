@@ -552,15 +552,11 @@ void __stdcall renderOverlay(ID3D11Device* device, ID3D11DeviceContext* deviceCo
         LOG("Initialized ImGui overlay.");
     }
 
-    LOG("Getting ClientRect...");
     if (!GetClientRect(renderVars::g_hwnd, &renderVars::rect)) {
 		LOG("ERROR: Failed to get client rect.");
     }
-	LOG("Got ClientRect.");
-	LOG("Getting DisplaySize...");
     renderVars::io->DisplaySize = ImVec2((float)(renderVars::rect.right - renderVars::rect.left),
         (float)(renderVars::rect.bottom - renderVars::rect.top));
-    LOG("Got DisplaySize.");
 
 #ifndef _MENU_ONLY
     // this needs to be done every frame in order to have responsive input (e.g. for buttons to work when clicked)
@@ -570,16 +566,12 @@ void __stdcall renderOverlay(ID3D11Device* device, ID3D11DeviceContext* deviceCo
     renderVars::io->MouseDown[2] = GetAsyncKeyState(VK_MBUTTON) & 0x8000;
 #endif
 
-    LOG("Got here 1.");
     ImGui_ImplDX11_NewFrame();
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
 
-    LOG("Rendered new frame 2.");
     // buttons, text, etc.
     renderContent();
-
-    LOG("RenderContent passed.");
 
     ImGui::EndFrame();
     ImGui::Render();
