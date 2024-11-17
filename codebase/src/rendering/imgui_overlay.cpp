@@ -576,5 +576,4 @@ void __stdcall renderOverlay(ID3D11Device* device, ID3D11DeviceContext* deviceCo
     ImGui::EndFrame();
     ImGui::Render();
     ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
-    LOG("showed data.");
 }

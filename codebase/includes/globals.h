@@ -1,8 +1,8 @@
 #pragma once
 #include "pch.h"
 
-#define PE_MODULE_NAME      "src.exe" // name of the module to hook
-#define WINDOW_NAME         "DirectX 11 Dummy App" // name of the window to hook
+#define PE_MODULE_NAME      "plutonium-bootstrapper-win32.exe" // name of the module to hook
+#define WINDOW_NAME         "Plutonium T6 Zombies (r4060)" // name of the window to hook
 #define TRAMPOLINE_SZ       5 // size of the trampoline (bytes we overwrote, so 5)
 #define PRESENT_INDEX       8 // index 8 for Present in IDXGISwapChain vmt
 #define JMP_SZ              5 // jmp size
