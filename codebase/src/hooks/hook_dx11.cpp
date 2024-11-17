@@ -83,6 +83,17 @@ __declspec(naked) void __stdcall hookedPresent(IDXGISwapChain* swapChain, UINT S
     dxgi.dll:6A85E1F5                 and     esp, 0FFFFFFF8h
     
 	REMEMBER: first 5 bytes are overwritten, these are the original instructions
+    
+    plutonium disassembly:
+	present starts at 0x6A85E1F0
+
+    6A85E20F | FF75 10                  | push dword ptr ss:[ebp+10] // flags                                                                                              |
+    6A85E212 | FF75 0C                  | push dword ptr ss:[ebp+C] // syncinterval                                                                                                              |
+    6A85E215 | 56                       | push esi // swapchain    
+	call to internal present function...
+
+    notice that theres a 6 byte difference, so overwrite 5 for jmp 
+    and 1 for nop
     */
     
     __asm {
