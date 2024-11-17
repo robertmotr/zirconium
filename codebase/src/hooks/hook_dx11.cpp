@@ -97,20 +97,36 @@ __declspec(naked) void __stdcall hookedPresent(IDXGISwapChain* swapChain, UINT S
     */
     
     __asm {
-        push ebp
-        mov ebp, esp 
-        sub esp, 0x10 
+        pushad // save general registers 
+        pushfd // save flags
 
-        push ebx 
-		push ecx
+		mov eax, dword ptr ss:[ebp + 0x10] // Flags
+		mov Flags, eax
 
-		mov eax, [ebp + 0x8] // swapChain
-		mov ebx, [ebp + 0xC] // SyncInterval
-		mov ecx, [ebp + 0x10] // Flags
+		mov eax, dword ptr ss:[ebp + 0xC] // SyncInterval
+		mov SyncInterval, eax
 
-        pushad                
-        pushfd       
+		mov eax, esi // SwapChain
+		mov swapChain, eax
+
+		// jump back to Present + 6 (overwrote 6 bytes which jumped here)
+        mov edi, [hookVars::oPresent]
+        add edi, JMP_SZ
     }
+
+    // verify params are correct
+	LOG("swapChain: 0x", (void*)swapChain);
+	LOG("SyncInterval:", SyncInterval);
+	LOG("Flags:", Flags);
+
+	// print addresses, instructions, etc.
+	LOG("Original Present address: 0x", (void*)hookVars::oPresent);
+	LOG("Hooked Present address: 0x", &hookedPresent);
+
+    LOG("Present instructions:");
+    for (int i = 0; i < TRAMPOLINE_SZ; i++) {
+		LOG("0x", (void*)hookVars::oPresent[i]);
+	}
 
     if (swapChain == nullptr) {
 		LOG("ERROR: Swap chain is null.");
@@ -140,19 +156,19 @@ __declspec(naked) void __stdcall hookedPresent(IDXGISwapChain* swapChain, UINT S
         }
     }
 
+    LOG("Calling renderOverlay.");
     renderOverlay(hookVars::device, hookVars::deviceContext);
+	LOG("Finished renderOverlay, going to trampoline.");
 
     __asm {
         popfd                 // restore flags
         popad                 // restore all general-purpose registers
-
-		pop ecx
-		pop ebx
-
-        // fn epilogue
-        mov esp, ebp 
-        pop ebp 
-        jmp [hookVars::trampoline]  // continue execution of Present
+        
+		// original instructions overwritten
+		push dword ptr ss:[ebp + 0x10] // flags
+		push dword ptr ss:[ebp + 0xC] // syncinterval
+        
+		jmp edi
     }
 }
 
@@ -168,48 +184,35 @@ static bool __stdcall installHook() {
         LOG("ERROR: Failed to get Present address.");
         return false;
     }
-
-    // enough to hold the overwritten bytes + a jump back to the original fn
-    hookVars::trampoline = (BYTE*)VirtualAlloc(nullptr, TRAMPOLINE_SZ + JMP_SZ , MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
-    if (!hookVars::trampoline) {
-        LOG("ERROR: VirtualAlloc failed for the trampoline.");
-        return false;
-    }
-
-    // copy the overwritten bytes from Present to the trampoline
-    memcpy(hookVars::trampoline, hookVars::oPresent, TRAMPOLINE_SZ);
-
-    // relative address for the trampoline jump back
-    DWORD trampolineBackAddr = ((DWORD)hookVars::oPresent + TRAMPOLINE_SZ) - ((DWORD)hookVars::trampoline + JMP_SZ + TRAMPOLINE_SZ);
-    hookVars::trampoline[JMP_SZ] = JMP;
-    memcpy(hookVars::trampoline + JMP_SZ + 1, &trampolineBackAddr, sizeof(DWORD));
+    // since we are doing a mid function hook, increment 
+	// oPresent by 0x1F to get to where we want to hook
+	hookVars::oPresent += 0x1F;
+    LOG("Present address:", (void*)hookVars::oPresent);
 
     // overwrite the first bytes of Present with a jump to our hook
     DWORD oldProtect;
-    if (VirtualProtect(hookVars::oPresent, TRAMPOLINE_SZ, PAGE_EXECUTE_READWRITE, &oldProtect)) {
-        DWORD hookRelativeAddr = (DWORD)&hookedPresent - ((DWORD)hookVars::oPresent + JMP_SZ);
-        hookVars::oPresent[0] = JMP;
-        memcpy((BYTE*)hookVars::oPresent + 1, &hookRelativeAddr, sizeof(DWORD));
-        VirtualProtect(hookVars::oPresent, TRAMPOLINE_SZ, oldProtect, &oldProtect);
-    }
-    else {
+    if (!VirtualProtect(hookVars::oPresent, TRAMPOLINE_SZ, PAGE_EXECUTE_READWRITE, &oldProtect)) {
         LOG("ERROR: Failed to change memory protection on Present.");
         return false;
     }
-    _mm_sfence();
-	FlushInstructionCache(GetCurrentProcess(), hookVars::oPresent, TRAMPOLINE_SZ);
-	FlushInstructionCache(GetCurrentProcess(), hookVars::trampoline, TRAMPOLINE_SZ + JMP_SZ);
 
-    // print trampoline addr, etc
-	LOG("Trampoline address:", (void*)hookVars::trampoline);
+    DWORD hookRelativeAddr = (DWORD)&hookedPresent - ((DWORD)hookVars::oPresent + JMP_SZ);
+    hookVars::oPresent[0] = JMP;
+    memcpy((BYTE*)hookVars::oPresent + 1, &hookRelativeAddr, sizeof(DWORD));
+    hookVars::oPresent[JMP_SZ] = NOP; // nop the last byte
+    
+    if (!VirtualProtect(hookVars::oPresent, TRAMPOLINE_SZ, oldProtect, &oldProtect)) {
+		LOG("ERROR: Failed to restore memory protection on Present.");
+		return false;
+    }
+
+	_mm_sfence(); // barrier to ensure that the changes are visible to other threads
+	FlushInstructionCache(GetCurrentProcess(), hookVars::oPresent, TRAMPOLINE_SZ);
+    // flush to ensure that new instructions are visible to CPU
+
+	// print addresses, instructions, etc.
 	LOG("Original Present address:", (void*)hookVars::oPresent);
 	LOG("Hooked Present address:", &hookedPresent);
-
-    // print trampoline instructions
-	LOG("Trampoline instructions:");
-	for (int i = 0; i < TRAMPOLINE_SZ; i++) {
-		LOG("0x", (void*)hookVars::trampoline[i]);
-	}
 
 	// print new Present instructions
 	LOG("New Present instructions:");

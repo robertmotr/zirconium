@@ -3,7 +3,7 @@
 
 #define PE_MODULE_NAME      "plutonium-bootstrapper-win32.exe" // name of the module to hook
 #define WINDOW_NAME         "Plutonium T6 Zombies (r4060)" // name of the window to hook
-#define TRAMPOLINE_SZ       5 // size of the trampoline (bytes we overwrote, so 5)
+#define TRAMPOLINE_SZ       6 // size of the trampoline (bytes we overwrote, so 5)
 #define PRESENT_INDEX       8 // index 8 for Present in IDXGISwapChain vmt
 #define JMP_SZ              5 // jmp size
 #define JMP_MODRM_SZ        6 // jmp modrm size
@@ -92,5 +92,4 @@ namespace hookVars {
     extern BYTE* oPresent;
 	extern ID3D11Device* device;
 	extern ID3D11DeviceContext* deviceContext;
-    extern BYTE* trampoline;
 }

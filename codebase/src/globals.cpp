@@ -56,5 +56,4 @@ namespace hookVars {
 	BYTE*					oPresent = nullptr;
 	ID3D11Device*			device = nullptr;
 	ID3D11DeviceContext*	deviceContext = nullptr;
-	BYTE*					trampoline = nullptr;		
 }

@@ -87,5 +87,21 @@ std::string __stdcall toHex(T* ptr) {
 	return str;
 }
 
+/*
+* Converts a variable to a string as a hex address.
+* @param var The variable to convert.
+* @return std::string representation of the variable as a hex address.
+*/
+template<typename T>
+std::string __stdcall toHex(T var) {
+	std::string str;
+	str += "0x";
+
+	std::stringstream stream;
+	stream << std::hex << var;
+	str += stream.str();
+	return str;
+}
+
 // Macro to print file, line, and any number of arguments
 #define LOG(...) logHelper(__FILE__, __LINE__, __VA_ARGS__)
