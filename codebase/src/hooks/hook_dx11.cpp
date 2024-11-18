@@ -100,18 +100,14 @@ __declspec(naked) void __stdcall hookedPresent(IDXGISwapChain* swapChain, UINT S
         pushad // save general registers 
         pushfd // save flags
 
-		mov eax, dword ptr ss:[ebp + 0x10] // Flags
-		mov Flags, eax
+	mov eax, dword ptr ss:[ebp + 0x10] // Flags
+	mov Flags, eax
 
-		mov eax, dword ptr ss:[ebp + 0xC] // SyncInterval
-		mov SyncInterval, eax
+	mov eax, dword ptr ss:[ebp + 0xC] // SyncInterval
+	mov SyncInterval, eax
 
-		mov eax, esi // SwapChain
-		mov swapChain, eax
-
-		// jump back to Present + 6 (overwrote 6 bytes which jumped here)
-        mov edi, [hookVars::oPresent]
-        add edi, JMP_SZ
+	mov eax, esi // SwapChain
+	mov swapChain, eax
     }
 
     // verify params are correct
@@ -164,11 +160,15 @@ __declspec(naked) void __stdcall hookedPresent(IDXGISwapChain* swapChain, UINT S
         popfd                 // restore flags
         popad                 // restore all general-purpose registers
         
-		// original instructions overwritten
-		push dword ptr ss:[ebp + 0x10] // flags
-		push dword ptr ss:[ebp + 0xC] // syncinterval
-        
-		jmp edi
+	// original instructions overwritten
+	push dword ptr ss:[ebp + 0x10] // flags
+	push dword ptr ss:[ebp + 0xC] // syncinterval
+
+	// jump back to Present + 6 (overwrote 6 bytes which jumped here)
+        mov edi, [hookVars::oPresent]
+        add edi, JMP_SZ
+
+	jmp edi
     }
 }
 
