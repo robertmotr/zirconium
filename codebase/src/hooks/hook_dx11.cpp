@@ -100,14 +100,14 @@ __declspec(naked) void __stdcall hookedPresent(IDXGISwapChain* swapChain, UINT S
         pushad // save general registers 
         pushfd // save flags
 
-	mov eax, dword ptr ss:[ebp + 0x10] // Flags
-	mov Flags, eax
+	    mov eax, dword ptr ss:[ebp + 0x10] // Flags
+	    mov Flags, eax
 
-	mov eax, dword ptr ss:[ebp + 0xC] // SyncInterval
-	mov SyncInterval, eax
+	    mov eax, dword ptr ss:[ebp + 0xC] // SyncInterval
+	    mov SyncInterval, eax
 
-	mov eax, esi // SwapChain
-	mov swapChain, eax
+	    mov eax, esi // SwapChain
+	    mov swapChain, eax
     }
 
     // verify params are correct
@@ -160,15 +160,15 @@ __declspec(naked) void __stdcall hookedPresent(IDXGISwapChain* swapChain, UINT S
         popfd                 // restore flags
         popad                 // restore all general-purpose registers
         
-	// original instructions overwritten
-	push dword ptr ss:[ebp + 0x10] // flags
-	push dword ptr ss:[ebp + 0xC] // syncinterval
+	    // original instructions overwritten
+	    push dword ptr ss:[ebp + 0x10] // flags
+	    push dword ptr ss:[ebp + 0xC] // syncinterval
 
-	// jump back to Present + 6 (overwrote 6 bytes which jumped here)
-        mov edi, [hookVars::oPresent]
-        add edi, JMP_SZ
+	    // jump back to Present + 6 (overwrote 6 bytes which jumped here)
+        mov edi, hookVars::oPresent
+        add edi, TRAMPOLINE_SZ
 
-	jmp edi
+	    jmp edi
     }
 }
 
@@ -198,8 +198,12 @@ static bool __stdcall installHook() {
 
     DWORD hookRelativeAddr = (DWORD)&hookedPresent - ((DWORD)hookVars::oPresent + JMP_SZ);
     hookVars::oPresent[0] = JMP;
-    memcpy((BYTE*)hookVars::oPresent + 1, &hookRelativeAddr, sizeof(DWORD));
-    hookVars::oPresent[JMP_SZ] = NOP; // nop the last byte
+    memcpy(hookVars::oPresent + 1, &hookRelativeAddr, sizeof(DWORD));
+    
+    // pad remaining bytes with NOPs
+	for (int i = JMP_SZ; i < TRAMPOLINE_SZ; i++) {
+		hookVars::oPresent[i] = NOP;
+	}
     
     if (!VirtualProtect(hookVars::oPresent, TRAMPOLINE_SZ, oldProtect, &oldProtect)) {
 		LOG("ERROR: Failed to restore memory protection on Present.");
@@ -207,7 +211,8 @@ static bool __stdcall installHook() {
     }
 
 	_mm_sfence(); // barrier to ensure that the changes are visible to other threads
-	FlushInstructionCache(GetCurrentProcess(), hookVars::oPresent, TRAMPOLINE_SZ);
+	// this is unnecessary because we pause all threads but just in case
+    FlushInstructionCache(GetCurrentProcess(), hookVars::oPresent, TRAMPOLINE_SZ);
     // flush to ensure that new instructions are visible to CPU
 
 	// print addresses, instructions, etc.
