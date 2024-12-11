@@ -62,7 +62,7 @@ static void* getPresentAddress() {
 * Custom Present function that will be called instead of the original Present function.
 */
 __declspec(naked) void __stdcall hookedPresent(IDXGISwapChain* swapChain, UINT SyncInterval, UINT Flags) {
-	/* IDA disassembly of CDGXISwapChain::Present:
+    /* IDA disassembly of CDGXISwapChain::Present:
     dxgi.dll:6A85E1F0 ; Attributes: bp-based frame fuzzy-sp
     dxgi.dll:6A85E1F0 ; public: virtual long __stdcall CDXGISwapChain::Present(unsigned int, unsigned int)
     dxgi.dll:6A85E1F0 ?Present@CDXGISwapChain@@UAGJII@Z proc near
@@ -74,101 +74,109 @@ __declspec(naked) void __stdcall hookedPresent(IDXGISwapChain* swapChain, UINT S
     dxgi.dll:6A85E1F0 var_2C          = byte ptr -2Ch
     dxgi.dll:6A85E1F0 var_4           = dword ptr -4
     dxgi.dll:6A85E1F0 arg_0           = dword ptr  8 // member function 'this' ptr (swapChain)
-	dxgi.dll:6A85E1F0 arg_4           = dword ptr  0Ch // SyncInterval
-	dxgi.dll:6A85E1F0 arg_8           = dword ptr  10h // Flags
+    dxgi.dll:6A85E1F0 arg_4           = dword ptr  0Ch // SyncInterval
+    dxgi.dll:6A85E1F0 arg_8           = dword ptr  10h // Flags
     dxgi.dll:6A85E1F0
     dxgi.dll:6A85E1F0                 mov     edi, edi        ; CODE XREF: [thunk]:CDXGISwapChain::Present`adjustor{56}' (uint,uint)
     dxgi.dll:6A85E1F2                 push    ebp
     dxgi.dll:6A85E1F3                 mov     ebp, esp
-    dxgi.dll:6A85E1F5                 and     esp, 0FFFFFFF8h
-    
-	REMEMBER: first 5 bytes are overwritten, these are the original instructions
-    
+    dxgi.dll:6A85E1F5                 and     esp, 0FFFFFFF8h // TODO: should i align the stack tho?
+
     plutonium disassembly:
-	present starts at 0x6A85E1F0
+    present starts at 0x6A85E1F0
 
-    6A85E20F | FF75 10                  | push dword ptr ss:[ebp+10] // flags                                                                                              |
-    6A85E212 | FF75 0C                  | push dword ptr ss:[ebp+C] // syncinterval                                                                                                              |
-    6A85E215 | 56                       | push esi // swapchain    
-	call to internal present function...
+    6A85E20F | FF75 10                  | push dword ptr ss:[ebp+10] // flags
+    6A85E212 | FF75 0C                  | push dword ptr ss:[ebp+C] // syncinterval
+    6A85E215 | 56                       | push esi // swapchain
+    call to internal present function...
 
-    notice that theres a 6 byte difference, so overwrite 5 for jmp 
-    and 1 for nop
+    6 byte difference overwrite 5 for jmp 1 for nop
     */
-    
+
     __asm {
-        pushad // save general registers 
-        pushfd // save flags
+        pushad // general 
+        pushfd // flags
 
-	    mov eax, dword ptr ss:[ebp + 0x10] // Flags
-	    mov Flags, eax
+        mov eax, dword ptr ss : [ebp + 0x10] // Flags
+        mov Flags, eax
 
-	    mov eax, dword ptr ss:[ebp + 0xC] // SyncInterval
-	    mov SyncInterval, eax
+        mov eax, dword ptr ss : [ebp + 0xC] // SyncInterval
+        mov SyncInterval, eax
 
-	    mov eax, esi // SwapChain
-	    mov swapChain, eax
+        mov eax, esi // SwapChain
+        mov swapChain, eax
     }
 
     // verify params are correct
-	LOG("swapChain: 0x", (void*)swapChain);
-	LOG("SyncInterval:", SyncInterval);
-	LOG("Flags:", Flags);
+    LOG("swapChain: 0x", (void*)swapChain);
+    LOG("SyncInterval:", SyncInterval);
+    LOG("Flags:", Flags);
 
-	// print addresses, instructions, etc.
-	LOG("Original Present address: 0x", (void*)hookVars::oPresent);
-	LOG("Hooked Present address: 0x", &hookedPresent);
+    // print addresses, instructions, etc.
+    LOG("Original Present address: 0x", (void*)hookVars::oPresent);
+    LOG("Hooked Present address: 0x", &hookedPresent);
 
     LOG("Present instructions:");
     for (int i = 0; i < TRAMPOLINE_SZ; i++) {
-		LOG("0x", (void*)hookVars::oPresent[i]);
-	}
+        LOG("0x", (void*)hookVars::oPresent[i]);
+    }
 
     if (swapChain == nullptr) {
-		LOG("ERROR: Swap chain is null.");
+        LOG("ERROR: Swap chain is null.");
     }
 
     if (!hookVars::device || !hookVars::deviceContext) {
-		LOG("Getting device and device context.");
+        LOG("getting device/device ctx");
+
         ID3D11Texture2D* pBackBuffer = nullptr;
-        if (SUCCEEDED(swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&pBackBuffer))) {
-            if (pBackBuffer == nullptr) {
-                LOG("ERROR: Failed to get back buffer (nullptr).");
-            }
-            
-            pBackBuffer->GetDevice(&hookVars::device);
-            if (hookVars::device == nullptr) {
-                LOG("ERROR: Failed to get device context (nullptr)");
-            }
-            hookVars::device->GetImmediateContext(&hookVars::deviceContext);
-			if (hookVars::deviceContext == nullptr) {
-				LOG("ERROR: Failed to get device context.");
-			}
+        HRESULT hr = swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&pBackBuffer);
+
+        if (FAILED(hr)) {
+            LOG("ERROR: GetBuffer() returned an error.");
+            return;
+        }
+
+        if (!pBackBuffer) {
+            LOG("ERROR: Failed to get back buffer (nullptr).");
+            return;
+        }
+
+        pBackBuffer->GetDevice(&hookVars::device);
+        if (!hookVars::device) {
+            LOG("ERROR: Failed to get device.");
             pBackBuffer->Release();
-            LOG("Successfully got device and device context.");
+            return;
         }
-        else {
-            LOG("ERROR: Failed to get back buffer. GetBuffer() returned an error.");
+
+        hookVars::device->GetImmediateContext(&hookVars::deviceContext);
+        if (!hookVars::deviceContext) {
+            LOG("ERROR: Failed to get device context.");
+            pBackBuffer->Release();
+            return;
         }
+
+        LOG("Successfully got device and device context.");
+        pBackBuffer->Release();
     }
+
 
     LOG("Calling renderOverlay.");
     renderOverlay(hookVars::device, hookVars::deviceContext);
-	LOG("Finished renderOverlay, going to trampoline.");
+    LOG("Finished renderOverlay, going to trampoline.");
 
     __asm {
-        popfd                 // restore flags
-        popad                 // restore all general-purpose registers
-        
-	    // original instructions overwritten
-	    push dword ptr ss:[ebp + 0x10] // flags
-	    push dword ptr ss:[ebp + 0xC] // syncinterval
+        popfd
+        popad
 
-	    // jump back to Present + 6 (overwrote 6 bytes which jumped here)
+        // trampoline (original instructions overwritten)
+        push dword ptr ss : [ebp + 0x10] // flags
+        push dword ptr ss : [ebp + 0xC] // syncinterval
+
+        // jump back to Present + 6 (overwrote 6 bytes which jumped here)
         mov edi, hookVars::oPresent
         add edi, TRAMPOLINE_SZ
 
-	    jmp edi
+        jmp edi
     }
 }
 
