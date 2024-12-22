@@ -97,6 +97,9 @@ __declspec(naked) void __stdcall hookedPresent(IDXGISwapChain* swapChain, UINT S
         pushad // general 
         pushfd // flags
 
+        mov edi, esp 
+		and esp, 0xFFFFFFF0 // align stack
+
         mov eax, dword ptr ss : [ebp + 0x10] // Flags
         mov Flags, eax
 
@@ -126,33 +129,27 @@ __declspec(naked) void __stdcall hookedPresent(IDXGISwapChain* swapChain, UINT S
     }
 
     if (!hookVars::device || !hookVars::deviceContext) {
-        LOG("getting device/device ctx");
-
         ID3D11Texture2D* pBackBuffer = nullptr;
         HRESULT hr = swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&pBackBuffer);
 
         if (FAILED(hr)) {
             LOG("ERROR: GetBuffer() returned an error.");
-            return;
         }
 
         if (!pBackBuffer) {
             LOG("ERROR: Failed to get back buffer (nullptr).");
-            return;
         }
 
         pBackBuffer->GetDevice(&hookVars::device);
         if (!hookVars::device) {
             LOG("ERROR: Failed to get device.");
             pBackBuffer->Release();
-            return;
         }
 
         hookVars::device->GetImmediateContext(&hookVars::deviceContext);
         if (!hookVars::deviceContext) {
             LOG("ERROR: Failed to get device context.");
             pBackBuffer->Release();
-            return;
         }
 
         LOG("Successfully got device and device context.");
@@ -165,8 +162,11 @@ __declspec(naked) void __stdcall hookedPresent(IDXGISwapChain* swapChain, UINT S
     LOG("Finished renderOverlay, going to trampoline.");
 
     __asm {
+        mov esp, edi
         popfd
         popad
+
+		and esp, 0xFFFFFFF0 // align stack
 
         // trampoline (original instructions overwritten)
         push dword ptr ss : [ebp + 0x10] // flags
@@ -232,6 +232,8 @@ static bool __stdcall installHook() {
 	for (int i = 0; i < TRAMPOLINE_SZ; i++) {
 		LOG("0x", (void*)hookVars::oPresent[i]);
 	}
+
+	LOG("hookVars::oPresent + TRAMPOLINE_SZ:", (void*)(hookVars::oPresent + TRAMPOLINE_SZ));
 
     resumeAllThreads();
     return true;
