@@ -1,19 +1,15 @@
 #pragma once
 #include "pch.h"
 
-#define PE_MODULE_NAME      "plutonium-bootstrapper-win32.exe" // name of the module to hook
-#define WINDOW_NAME         "Plutonium T6 Zombies (r4839)" // name of the window to hook
-#define TRAMPOLINE_SZ       6 // size of the trampoline 
-#define PRESENT_INDEX       8 // index 8 for Present in IDXGISwapChain vmt
-#define JMP_SZ              5 // jmp size
-#define JMP_MODRM_SZ        6 // jmp modrm size
-#define JMP                 0xE9 // jmp opcode
-#define CALL                0xE8 // call opcode
-#define PUSH                0x68 // push opcode
-#define JMP_MODRM           0xFF // jmp modrm opcode
-#define JMP_SHORT           0xEB // jmp short opcode
-#define MODRM_DISP32        0x25 // modrm disp32 opcode
-#define NOP                 0x90 // nop opcode
+#define JMP_SZ              5 					// jmp size
+#define JMP                 0xE9 				// jmp opcode
+#define NOP                 0x90 				// nop opcode
+#define TRAMPOLINE_SZ       6 					// size of the trampoline 
+#define HOOK_OFFSET  	    0x1F 				// offset from hookVars::oPresent. This is where we hook our initial jmp
+#define PRESENT_INDEX       8 					// index 8 for Present in IDXGISwapChain vmt
+
+#define PE_MODULE_NAME      "plutonium-bootstrapper-win32.exe" 	// name of the module to hook
+#define WINDOW_NAME         "Plutonium T6 Zombies (r4839)" 	// name of the window to hook
 
 using MEM_TYPES = std::variant<unsigned int, float, std::string>;
 
@@ -66,6 +62,7 @@ namespace gameVars {
 
 // for ImGui setup
 namespace renderVars {
+	extern ID3D11RenderTargetView* renderTargetView;
 	extern bool initialized; // check if ImGui is initialized
 	extern ImGuiIO* io; // stored globally to reduce overhead inside renderOverlay
 	extern ImGuiContext* ctx; // same as above
@@ -75,20 +72,21 @@ namespace renderVars {
 
 // for actual ImGui content
 namespace guiVars {
-    extern std::vector<memoryTableEntry> memoryTable;
-	extern bool showMenu;
-	extern ImGuiTabBarFlags tab_bar_flags;
-	extern unsigned int memory_table_idx;
-	extern unsigned int	struct_view_idx;
-    extern bool aimbot_checkbox;
-    extern int aimbot_radio_btn_sel;
-    extern bool lock_until_eliminated;
-    extern int aim_preset;
-    extern int aim_fov;
-    extern float lock_speed;
+    extern std::vector<memoryTableEntry> 		memoryTable;
+    extern bool 								showMenu;
+    extern ImGuiTabBarFlags 					tab_bar_flags;
+    extern unsigned int 						memory_table_idx;
+    extern unsigned int							struct_view_idx;
+    extern bool 								aimbot_checkbox;
+    extern int 									aimbot_radio_btn_sel;
+    extern bool 								lock_until_eliminated;
+    extern int 									aim_preset;
+    extern int 									aim_fov;
+    extern float 								lock_speed;
 }
 
 namespace hookVars {
+	extern BYTE* resumeAddr;
     extern BYTE* oPresent;
 	extern ID3D11Device* device;
 	extern ID3D11DeviceContext* deviceContext;
