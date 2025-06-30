@@ -391,36 +391,12 @@ void __stdcall showMemoryTable() {
 	* @return true on success, false otherwise
 */
 bool __stdcall initOverlay(ID3D11Device *device, ID3D11DeviceContext *deviceContext) {
-	if (renderVars::initialized) {
-		return true;
-	}
-	else if (!device || !deviceContext) {
+	if (!device || !deviceContext) {
 		LOG("ERROR: Invalid device or device context.");
 		return false;
 	}
     
-    
     LOG("Initializing ImGui...");
-    renderVars::initialized = true;
-    
-    // TODO
-    // this ideally should be more robust since the name could change...
-    renderVars::g_hwnd = FindWindowA(NULL, WINDOW_NAME);
-    if (!renderVars::g_hwnd) {
-        LOG("Failed to find game window.");
-        return false;
-    }
-    DWORD windowProcId = 0;
-    DWORD curr = GetCurrentProcessId();
-    GetWindowThreadProcessId(renderVars::g_hwnd, &windowProcId);
-
-	if (curr != windowProcId) {
-		LOG("ERROR: Game window is not in the same process as the DLL.");
-		return false;
-	}
-
-    LOG("Found game window.");
-
     LOG("Creating ImGui context...");
     renderVars::ctx = ImGui::CreateContext();
     if (!renderVars::ctx) {
@@ -444,7 +420,7 @@ bool __stdcall initOverlay(ID3D11Device *device, ID3D11DeviceContext *deviceCont
         return false;
     }
     if (!ImGui_ImplDX11_Init(device, deviceContext)) {
-        LOG("ImGui_ImplDX9_Init failed.");
+        LOG("ImGui_ImplDX11_Init failed.");
         return false;
     }
     LOG("ImGui initialized successfully.");
@@ -455,6 +431,7 @@ bool __stdcall initOverlay(ID3D11Device *device, ID3D11DeviceContext *deviceCont
 		////return false;
   ////  }
   //  LOG("Memory table initialized successfully");
+	renderVars::initialized = true;
     return true;
 }
 
@@ -544,14 +521,6 @@ void __stdcall renderContent() {
 * Called every frame to render the ImGui overlay from inside our hook.
 */
 void __stdcall renderOverlay(ID3D11Device* device, ID3D11DeviceContext* deviceContext) {
-
-    if (!renderVars::initialized) {
-        if (!initOverlay(device, deviceContext)) {
-            LOG("ERROR: Couldn't initialize ImGui overlay.");
-        }
-        LOG("Initialized ImGui overlay.");
-    }
-
     if (!GetClientRect(renderVars::g_hwnd, &renderVars::rect)) {
 		LOG("ERROR: Failed to get client rect.");
     }
@@ -573,7 +542,7 @@ void __stdcall renderOverlay(ID3D11Device* device, ID3D11DeviceContext* deviceCo
     // buttons, text, etc.
     renderContent();
 
-    ImGui::EndFrame();
     ImGui::Render();
+	deviceContext->OMSetRenderTargets(1, &hookVars::renderTargetView, NULL);
     ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 }
