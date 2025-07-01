@@ -59,42 +59,68 @@ static void* getPresentAddress() {
 
 static bool __stdcall initDX11(IDXGISwapChain* swapChain) {
 	if (SUCCEEDED(swapChain->GetDevice(__uuidof(ID3D11Device), (void**)&hookVars::device))) {
-			if (FAILED(hookVars::device->GetImmediateContext(&hookVars::deviceContext)) {
-				LOG("GetImmediateContext failed.");
-				return false;
-			}
+        hookVars::device->GetImmediateContext(&hookVars::deviceContext);
+        if (hookVars::deviceContext == nullptr) {
+			LOG("GetImmediateContext failed, deviceContext is null.");
+			return false;
+        }
+		LOG("SUCCESS: Got device and device context.");
 			
-			DXGI_SWAP_CHAIN_DESC swapChainDesc;
-			if (FAILED(swapChain->GetDesc(&swapChainDesc)) {
-				LOG("Get swapChainDesc failed.");
-				return false;
-			}
-			renderVars::g_hwnd = swapChainDesc.OutputWindow;
+		DXGI_SWAP_CHAIN_DESC swapChainDesc;
+		if (FAILED(swapChain->GetDesc(&swapChainDesc))) {
+			LOG("Get swapChainDesc failed.");
+			return false;
+		}
+		LOG("SUCCESS: Got swapChainDesc.");
+		renderVars::g_hwnd = swapChainDesc.OutputWindow;
 
-			ID3D11Texture2D* backBuffer = nullptr;
-			if (FAILED(swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&backBuffer) 
-				|| backBuffer == nullptr)
-			{
-				LOG("GetBuffer() failed/backBuffer == null");
-				return false;
-			}
+		ID3D11Texture2D* backBuffer = nullptr;
+		if (FAILED(swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&backBuffer)))
+		{
+			LOG("GetBuffer() failed/backBuffer == null");
+			return false;
+		}
+		LOG("SUCCESS: Got back buffer.");
 
-			if (FAILED(hookVars::device->CreateRenderTargetView(backBuffer, NULL, renderVars::renderTargetView)) {
-				LOG("CreateRenderTargetView failed.");
-				return false;
-			}
-			backBuffer->Release();
+		if (FAILED(hookVars::device->CreateRenderTargetView(backBuffer, NULL, &renderVars::renderTargetView))) {
+			LOG("CreateRenderTargetView failed.");
+			return false;
+		}
+		LOG("SUCCESS: Created render target view.");
+		backBuffer->Release();
 
-			if (!initOverlay(hookVars::device, hookVars::deviceContext)) {
-				LOG("ERROR: initOverlay failed.");
-				return false;
-			}
+		if (!initOverlay(hookVars::device, hookVars::deviceContext)) {
+			LOG("ERROR: initOverlay failed.");
+			return false;
+		}
+		LOG("SUCCESS: initOverlay completed successfully.");
 	}
 	else {
 		LOG("swapChain->GetDevice failed.");
 		return false;
 	}
 	return true;
+}
+
+static HRESULT __stdcall hookHandler(IDXGISwapChain* swapChain,
+    UINT SyncInterval,
+    UINT Flags)
+{
+    if (swapChain == nullptr) {
+        LOG("ERROR: Swap chain is null.");
+    }
+
+    if (!renderVars::initialized) {
+        if (initDX11(swapChain)) {
+            LOG("SUCCESS: initDX11 completed successfully.");
+        }
+        else {
+            LOG("ERROR: initDX11 failed.");
+        }
+    }
+
+    renderOverlay(hookVars::device, hookVars::deviceContext);
+    return TRUE;
 }
 
 __declspec(naked) void __stdcall hookedPresent(IDXGISwapChain* swapChain, UINT SyncInterval, UINT Flags) {
@@ -134,41 +160,16 @@ __declspec(naked) void __stdcall hookedPresent(IDXGISwapChain* swapChain, UINT S
         pushfd // flags
 
         mov eax, dword ptr ss : [ebp + 0x10] // Flags
-        mov Flags, eax
+        push eax 
 
         mov eax, dword ptr ss : [ebp + 0xC] // SyncInterval
-        mov SyncInterval, eax
+        push eax 
 
         mov eax, dword ptr ss : [ebp + 0x8] // swapChain
-        mov swapChain, eax
-    }
+        push eax 
 
-	if (swapChain == nullptr) {
-        LOG("ERROR: Swap chain is null.");
-    }
-	
-    // verify params are correct
-    LOG("swapChain: 0x", (void*)swapChain);
-    LOG("SyncInterval:", SyncInterval);
-    LOG("Flags:", Flags);
+        call hookHandler
 
-    LOG("Present instructions (inside hookedPresent):");
-    for (int i = 0; i < TRAMPOLINE_SZ; i++) {
-        LOG("0x", (void*)hookVars::oPresent[i]);
-    }
-
-    if (!renderVars::initialized) {
-		if (initDX11(swapChain)) {
-			LOG("SUCCESS: initDX11 completed successfully.");
-		}
-		else {
-			LOG("ERROR: initDX11 failed.");
-		}
-	}
-
-	renderOverlay(hookVars::device, hookVars::deviceContext);
-
-    __asm {
         popfd
         popad
 
@@ -193,10 +194,7 @@ static bool __stdcall installHook() {
         return false;
     }
     hookVars::oPresent += HOOK_OFFSET;
-    LOG("Present address (+ 0x1F):", (void*)hookVars::oPresent);
     hookVars::resumeAddr = hookVars::oPresent + TRAMPOLINE_SZ;
-    LOG("Resume addr:", (void*)hookVars::resumeAddr);
-    LOG("Hooked Present address:", &hookedPresent);
 	    
     DWORD oldProtect;
     if (!VirtualProtect(hookVars::oPresent, TRAMPOLINE_SZ, PAGE_EXECUTE_READWRITE, &oldProtect)) {
@@ -215,8 +213,8 @@ static bool __stdcall installHook() {
     }
     
     if (!VirtualProtect(hookVars::oPresent, TRAMPOLINE_SZ, oldProtect, &oldProtect)) {
-	LOG("ERROR: Failed to restore memory protection on Present.");
-	return false;
+	    LOG("ERROR: Failed to restore memory protection on Present.");
+	    return false;
     }
 
     _mm_sfence(); // barrier to ensure that the changes are visible to other threads
@@ -224,11 +222,6 @@ static bool __stdcall installHook() {
     
     FlushInstructionCache(GetCurrentProcess(), hookVars::oPresent, TRAMPOLINE_SZ);
     // flush to ensure that new instructions are visible to CPU
-	
-    LOG("New Present instructions:");
-    for (int i = 0; i < TRAMPOLINE_SZ; i++) {
-		LOG("0x", (void*)hookVars::oPresent[i]);
-    }
 
     resumeAllThreads();
     return true;
