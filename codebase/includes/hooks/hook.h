@@ -14,6 +14,10 @@ LRESULT CALLBACK dummyWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 */
 void* getPresentAddress();
 
+HRESULT __stdcall hookHandler(IDXGISwapChain* swapChain,
+    UINT syncInterval,
+    UINT flags);
+
 /*
 * Custom Present function that will be called instead of the original Present function.
 */

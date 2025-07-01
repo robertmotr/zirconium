@@ -23,11 +23,12 @@ namespace gameVars {
 
 // renderVars are global vars used for setting up imgui/imgui backend
 namespace renderVars {
-	bool                            initialized = false; 	// check if ImGui is initialized
-	ImGuiIO*			io = nullptr; 		// stored globally to reduce overhead inside renderOverlay
-	ImGuiContext*			ctx = nullptr; 		// stored globally to reduce overhead inside renderOverlay
-	HWND                            g_hwnd = nullptr; 	// background window we're running on top of
-	RECT                            rect = {}; 		// used for dynamically checking if wnd was resized
+	ID3D11RenderTargetView*			renderTargetView = nullptr; // used for rendering ImGui on top of the game
+	bool							initialized = false; 		// check if ImGui is initialized
+	ImGuiIO*						io = nullptr; 				// stored globally to reduce overhead inside renderOverlay
+	ImGuiContext*					ctx = nullptr; 				// stored globally to reduce overhead inside renderOverlay
+	HWND							g_hwnd = nullptr; 			// background window we're running on top of
+	RECT							rect = {}; 					// used for dynamically checking if wnd was resized
 }
 
 // guiVars are globals used often for showing content and/or menu logic
@@ -43,18 +44,18 @@ namespace guiVars {
 	unsigned int                    memory_table_idx = 0;
 	unsigned int                    struct_view_idx = 0;
 
-	bool				aimbot_checkbox = false;
-	int				aimbot_radio_btn_sel = 0;
-	bool				select_aim_key = false;
-	bool				lock_until_eliminated = false;
-	int				aim_preset = 0;
-	int				aim_fov = 0;
-	float				lock_speed;
+	bool							aimbot_checkbox = false;
+	int								aimbot_radio_btn_sel = 0;
+	bool							select_aim_key = false;
+	bool							lock_until_eliminated = false;
+	int								aim_preset = 0;
+	int								aim_fov = 0;
+	float							lock_speed;
 }
 
 namespace hookVars {
-	BYTE*				resumeAddr = nullptr;
-	BYTE*				oPresent = nullptr;
-	ID3D11Device*			device = nullptr;
-	ID3D11DeviceContext*		deviceContext = nullptr;
+	BYTE*							resumeAddr = nullptr;
+	BYTE*							oPresent = nullptr;
+	ID3D11Device*					device = nullptr;
+	ID3D11DeviceContext*			deviceContext = nullptr;
 }

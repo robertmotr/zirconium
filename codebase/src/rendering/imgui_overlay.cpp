@@ -114,79 +114,79 @@ bool __stdcall initMemTable() {
     }
     return true;
 #else
-    // self-explanatory, sets up global memtable
- //   uintptr_t moduleBase = resolveModuleAddress(nullptr, 0);
- //   if (moduleBase == 0) {
- //       LOG("ERROR: Failed to get module base address of Plutonium.");
- //       return false;
- //   }
-	//LOG("Got module base address of Plutonium: 0x", (void*)moduleBase);
+   // self-explanatory, sets up global memtable
+    uintptr_t moduleBase = resolveModuleAddress(nullptr, 0);
+    if (moduleBase == 0) {
+        LOG("ERROR: Failed to get module base address of Plutonium.");
+        return false;
+    }
+	LOG("Got module base address of Plutonium: 0x", (void*)moduleBase);
 
- //   uintptr_t playerBasePtr = moduleBase + 0x1D88290;
- //   uintptr_t playerBase = 0;
- //   if (playerBasePtr != 0) {
- //       playerBase = *reinterpret_cast<uintptr_t*>(playerBasePtr);
- //   }
+   uintptr_t playerBasePtr = moduleBase + 0x1D88290;
+   uintptr_t playerBase = 0;
+   if (playerBasePtr != 0) {
+       playerBase = *reinterpret_cast<uintptr_t*>(playerBasePtr);
+   }
 
- //   uintptr_t crosshairAddress = 0;
- //   if (playerBase != 0) {
- //       uintptr_t crosshairPtr = playerBase + 0x588;
- //       crosshairAddress = *reinterpret_cast<uintptr_t*>(crosshairPtr);
- //   }
+   uintptr_t crosshairAddress = 0;
+   if (playerBase != 0) {
+       uintptr_t crosshairPtr = playerBase + 0x588;
+       crosshairAddress = *reinterpret_cast<uintptr_t*>(crosshairPtr);
+   }
 
- //   guiVars::memoryTable.push_back({ "Player struct", 0x02188290, "N/A", "Player struct base address", "Unknown" });
- //   guiVars::memoryTable.push_back({ "Health", resolveModuleAddress(PE_MODULE_NAME, 0x1DC1568), 0u, "Realtime player health", "Unknown" });
- //   guiVars::memoryTable.push_back({ "Health maximum", 0x021C1568 + 0x4, 0u, "Maximum player health, 100 w/o Juggernog, 150 otherwise", "Unknown" });
- //   guiVars::memoryTable.push_back({ "X-coordinate", 0x23427C8, 0.0f, "Player x-coordinate", "Player" });
- //   guiVars::memoryTable.push_back({ "Y-coordinate", 0x23427CC, 0.0f, "Player y-coordinate", "Player" });
- //   guiVars::memoryTable.push_back({ "Z-coordinate", 0x23427CC + 4, 0.0f, "Player z-coordinate", "Player" });
+   guiVars::memoryTable.push_back({ "Player struct", 0x02188290, "N/A", "Player struct base address", "Unknown" });
+   guiVars::memoryTable.push_back({ "Health", resolveModuleAddress(PE_MODULE_NAME, 0x1DC1568), 0u, "Realtime player health", "Unknown" });
+   guiVars::memoryTable.push_back({ "Health maximum", 0x021C1568 + 0x4, 0u, "Maximum player health, 100 w/o Juggernog, 150 otherwise", "Unknown" });
+   guiVars::memoryTable.push_back({ "X-coordinate", 0x23427C8, 0.0f, "Player x-coordinate", "Player" });
+   guiVars::memoryTable.push_back({ "Y-coordinate", 0x23427CC, 0.0f, "Player y-coordinate", "Player" });
+   guiVars::memoryTable.push_back({ "Z-coordinate", 0x23427CC + 4, 0.0f, "Player z-coordinate", "Player" });
 
- //   guiVars::memoryTable.push_back({ "Gravity", playerBase + 0x8C, 0u, "Local player gravity multiplier", "Player" });
- //   guiVars::memoryTable.push_back({ "Static speed", playerBase + 0x94, 0u, "Local player speed", "Player" });
- //   guiVars::memoryTable.push_back({ "Local name", 0x2347BC8 + 0x10C, "name", "Local player name", "Player" });
+   guiVars::memoryTable.push_back({ "Gravity", playerBase + 0x8C, 0u, "Local player gravity multiplier", "Player" });
+   guiVars::memoryTable.push_back({ "Static speed", playerBase + 0x94, 0u, "Local player speed", "Player" });
+   guiVars::memoryTable.push_back({ "Local name", 0x2347BC8 + 0x10C, "name", "Local player name", "Player" });
 
- //   guiVars::memoryTable.push_back({ "Crosshair", crosshairAddress, 0u, "Local player crosshair", "Player" });
+   guiVars::memoryTable.push_back({ "Crosshair", crosshairAddress, 0u, "Local player crosshair", "Player" });
 
- //   guiVars::memoryTable.push_back({ "View Angle X", 0x23453A0, 0.0f, "Local player view angle X", "Player" });
- //   guiVars::memoryTable.push_back({ "View Angle Y", 0x23453A4, 0.0f, "Local player view angle Y", "Player" });
+   guiVars::memoryTable.push_back({ "View Angle X", 0x23453A0, 0.0f, "Local player view angle X", "Player" });
+   guiVars::memoryTable.push_back({ "View Angle Y", 0x23453A4, 0.0f, "Local player view angle Y", "Player" });
 
- //   guiVars::memoryTable.push_back({ "Primary weapon reserve ammo", resolveModuleAddress(PE_MODULE_NAME, 0x1F42B90), 0u, "Primary weapon reserve ammo", "WeaponStats" });
- //   guiVars::memoryTable.push_back({ "Secondary weapon reserve ammo", 0x02342B98, 0u, "Secondary weapon reserve ammo", "WeaponStats" });
- //   guiVars::memoryTable.push_back({ "Grenades", resolveModuleAddress(PE_MODULE_NAME, 0x1F42BD0), 0u, "Number of grenades", "WeaponStats" });
- //   guiVars::memoryTable.push_back({ "Claymores", resolveModuleAddress(PE_MODULE_NAME, 0x1F42BD8), 0u, "Number of claymores", "WeaponStats" });
- //   guiVars::memoryTable.push_back({ "Monkey bombs", resolveModuleAddress(PE_MODULE_NAME, 0x1F42BDC), 0u, "Number of monkey bombs", "WeaponStats" });
- //   guiVars::memoryTable.push_back({ "Money", resolveModuleAddress(PE_MODULE_NAME, 0x1F47D68), 0u, "Player money", "PlayerStats" });
- //   guiVars::memoryTable.push_back({ "Zombie round display", resolveModuleAddress(PE_MODULE_NAME, 0x1F3B710), 0u, "Current zombie round display", "GameStats" });
- //   guiVars::memoryTable.push_back({ "Zombies spawned in", resolveModuleAddress(PE_MODULE_NAME, 0x1F30388), 0u, "Number of zombies spawned in", "GameStats" });
+   guiVars::memoryTable.push_back({ "Primary weapon reserve ammo", resolveModuleAddress(PE_MODULE_NAME, 0x1F42B90), 0u, "Primary weapon reserve ammo", "WeaponStats" });
+   guiVars::memoryTable.push_back({ "Secondary weapon reserve ammo", 0x02342B98, 0u, "Secondary weapon reserve ammo", "WeaponStats" });
+   guiVars::memoryTable.push_back({ "Grenades", resolveModuleAddress(PE_MODULE_NAME, 0x1F42BD0), 0u, "Number of grenades", "WeaponStats" });
+   guiVars::memoryTable.push_back({ "Claymores", resolveModuleAddress(PE_MODULE_NAME, 0x1F42BD8), 0u, "Number of claymores", "WeaponStats" });
+   guiVars::memoryTable.push_back({ "Monkey bombs", resolveModuleAddress(PE_MODULE_NAME, 0x1F42BDC), 0u, "Number of monkey bombs", "WeaponStats" });
+   guiVars::memoryTable.push_back({ "Money", resolveModuleAddress(PE_MODULE_NAME, 0x1F47D68), 0u, "Player money", "PlayerStats" });
+   guiVars::memoryTable.push_back({ "Zombie round display", resolveModuleAddress(PE_MODULE_NAME, 0x1F3B710), 0u, "Current zombie round display", "GameStats" });
+   guiVars::memoryTable.push_back({ "Zombies spawned in", resolveModuleAddress(PE_MODULE_NAME, 0x1F30388), 0u, "Number of zombies spawned in", "GameStats" });
 
- //   guiVars::memoryTable.push_back({ "zm_entity_list[0]", 0x021C5828, "N/A", "Base address of first zombie struct in entity list", "Zombie" });
- //   guiVars::memoryTable.push_back({ "zm_entity_list[0] pathfinding direction", 0x021C5828 + 0x40, 0.0f, "Zombie pathfinding direction", "Zombie" });
- //   guiVars::memoryTable.push_back({ "zm_entity_list[0] coordinate X", 0x021C5828 + 0x18, 0.0f, "X coordinate of zombie", "Zombie" });
- //   guiVars::memoryTable.push_back({ "zm_entity_list[0] coordinate Y", 0x021C5828 + 0x1C, 0.0f, "Y coordinate of zombie", "Zombie" });
- //   guiVars::memoryTable.push_back({ "zm_entity_list[0] coordinate Z", 0x021C5828 + 0x20, 0.0f, "Z coordinate of zombie", "Zombie" });
- //   guiVars::memoryTable.push_back({ "zm_entity_list[0] start health", 0x021C5924 + 0xB0, 0u, "Zombie start health", "Zombie" });
- //   guiVars::memoryTable.push_back({ "zm_entity_list[0] current health", 0x021C5924 + 0xAC, 0u, "Zombie current health", "Zombie" });
+   guiVars::memoryTable.push_back({ "zm_entity_list[0]", 0x021C5828, "N/A", "Base address of first zombie struct in entity list", "Zombie" });
+   guiVars::memoryTable.push_back({ "zm_entity_list[0] pathfinding direction", 0x021C5828 + 0x40, 0.0f, "Zombie pathfinding direction", "Zombie" });
+   guiVars::memoryTable.push_back({ "zm_entity_list[0] coordinate X", 0x021C5828 + 0x18, 0.0f, "X coordinate of zombie", "Zombie" });
+   guiVars::memoryTable.push_back({ "zm_entity_list[0] coordinate Y", 0x021C5828 + 0x1C, 0.0f, "Y coordinate of zombie", "Zombie" });
+   guiVars::memoryTable.push_back({ "zm_entity_list[0] coordinate Z", 0x021C5828 + 0x20, 0.0f, "Z coordinate of zombie", "Zombie" });
+   guiVars::memoryTable.push_back({ "zm_entity_list[0] start health", 0x021C5924 + 0xB0, 0u, "Zombie start health", "Zombie" });
+   guiVars::memoryTable.push_back({ "zm_entity_list[0] current health", 0x021C5924 + 0xAC, 0u, "Zombie current health", "Zombie" });
 
- //   uintptr_t boneMatrixBase = 0x021C5940;
- //   for (int i = 0; i < 4; ++i) { // Rows
- //       for (int j = 0; j < 4; ++j) { // Columns
- //           uintptr_t addr = boneMatrixBase + (i * 0x10) + (j * 0x4);
- //           std::string name = "zm_entity_list[0].boneMatrix[" + std::to_string(i) + "][" + std::to_string(j) + "]";
- //           guiVars::memoryTable.push_back({ name, addr, 0.0f, "4x4 bone matrix (118 offset from zm_entity_list[0] struct)", "Zombie" });
- //       }
- //   }
+   uintptr_t boneMatrixBase = 0x021C5940;
+   for (int i = 0; i < 4; ++i) { // Rows
+       for (int j = 0; j < 4; ++j) { // Columns
+           uintptr_t addr = boneMatrixBase + (i * 0x10) + (j * 0x4);
+           std::string name = "zm_entity_list[0].boneMatrix[" + std::to_string(i) + "][" + std::to_string(j) + "]";
+           guiVars::memoryTable.push_back({ name, addr, 0.0f, "4x4 bone matrix (118 offset from zm_entity_list[0] struct)", "Zombie" });
+       }
+   }
 
- //   guiVars::memoryTable.push_back({ "Player struct with offset", 0x02330324 + 0x34, "N/A", "Player struct with offset", "Player" });
+   guiVars::memoryTable.push_back({ "Player struct with offset", 0x02330324 + 0x34, "N/A", "Player struct with offset", "Player" });
 
- //   // View matrix entries
- //   uintptr_t viewMatrixBase = 0x0103AD40;
- //   for (int i = 0; i < 16; ++i) {
- //       uintptr_t addr = viewMatrixBase + (i * 0x4);
- //       std::string name = "viewMatrix[" + std::to_string(i) + "]";
- //       std::string description = "View matrix element [" + std::to_string(i) + "]";
- //       guiVars::memoryTable.push_back({ name, addr, 0.0f, description, "Camera" });
- //   }
-    return true;
+   // View matrix entries
+   uintptr_t viewMatrixBase = 0x0103AD40;
+   for (int i = 0; i < 16; ++i) {
+       uintptr_t addr = viewMatrixBase + (i * 0x4);
+       std::string name = "viewMatrix[" + std::to_string(i) + "]";
+       std::string description = "View matrix element [" + std::to_string(i) + "]";
+       guiVars::memoryTable.push_back({ name, addr, 0.0f, description, "Camera" });
+   }
+   return true;
 #endif
 }
 
@@ -410,6 +410,10 @@ bool __stdcall initOverlay(ID3D11Device *device, ID3D11DeviceContext *deviceCont
     setImGuiStyle();
 
     renderVars::io = &ImGui::GetIO();
+	if (!renderVars::io) {
+		LOG("ERROR: Failed to get ImGui IO (nullptr).");
+		return false;
+	}
     renderVars::io->ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     renderVars::io->WantCaptureKeyboard = true;
     renderVars::io->WantCaptureMouse = true;
@@ -541,8 +545,7 @@ void __stdcall renderOverlay(ID3D11Device* device, ID3D11DeviceContext* deviceCo
 
     // buttons, text, etc.
     renderContent();
-
     ImGui::Render();
-	deviceContext->OMSetRenderTargets(1, &hookVars::renderTargetView, NULL);
+	deviceContext->OMSetRenderTargets(1, &renderVars::renderTargetView, NULL);
     ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 }
