@@ -30,7 +30,7 @@ uintptr_t resolveModuleAddress(const char* moduleName, const uintptr_t offset) {
         }
     }
 
-    // offset doesn�t cause overflow (rare but safety)
+    // offset doesnt cause overflow (rare but safety)
     if (offset > UINTPTR_MAX - moduleBase) {
         LOG("ERROR: Offset is too large and causes overflow.");
         return NULL;

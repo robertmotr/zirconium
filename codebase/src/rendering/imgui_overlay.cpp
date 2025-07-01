@@ -429,12 +429,12 @@ bool __stdcall initOverlay(ID3D11Device *device, ID3D11DeviceContext *deviceCont
     }
     LOG("ImGui initialized successfully.");
 
-  //  LOG("Initializing memory table...");
-  ////  if (!initMemTable()) {
-		////LOG("Failed to initialize memory table.");
-		////return false;
-  ////  }
-  //  LOG("Memory table initialized successfully");
+    LOG("Initializing memory table...");
+    if (!initMemTable()) {
+		LOG("Failed to initialize memory table.");
+		return false;
+    }
+    LOG("Memory table initialized successfully");
 	renderVars::initialized = true;
     return true;
 }
@@ -498,7 +498,7 @@ void __stdcall renderContent() {
 			EndTabItem();
 		}
 		if (BeginTabItem("Memory")) {
-            /*showMemoryTable();*/
+            showMemoryTable();
 			EndTabItem();
 		}
         if (BeginTabItem("Debug")) {
