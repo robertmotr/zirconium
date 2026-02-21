@@ -16,23 +16,23 @@ uintptr_t resolveModuleAddress(const char* moduleName, const uintptr_t offset) {
     }
 
     if (!moduleBase) {
-        LOG("ERROR: Failed to get module base address for module: ", moduleName);
-        LOG("ERROR: Error code: ", dwordErrorToString(GetLastError()));
+        LOG_ERROR("Failed to get module base address for module: %s", moduleName);
+        LOG_ERROR("Error code: %s", dwordErrorToString(GetLastError()).c_str());
 
         // Optional: Attempt to load the module dynamically
         moduleBase = reinterpret_cast<uintptr_t>(LoadLibraryA(moduleName));
         if (!moduleBase) {
-            LOG("ERROR: Dynamic loading of module also failed.");
-            return NULL; 
+            LOG_ERROR("Dynamic loading of module also failed.");
+            return NULL;
         }
         else {
-            LOG("Dynamic loading of module succeeded.");
+            LOG_INFO("Dynamic loading of module succeeded.");
         }
     }
 
     // offset doesnt cause overflow (rare but safety)
     if (offset > UINTPTR_MAX - moduleBase) {
-        LOG("ERROR: Offset is too large and causes overflow.");
+        LOG_ERROR("Offset is too large and causes overflow.");
         return NULL;
     }
 
@@ -48,7 +48,7 @@ void __stdcall pauseAllThreads() {
 
     HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
     if (hSnapshot == INVALID_HANDLE_VALUE) {
-        std::cerr << "Failed to create snapshot.\n";
+        LOG_ERROR("Failed to create snapshot.");
         return;
     }
 
@@ -60,7 +60,7 @@ void __stdcall pauseAllThreads() {
             if (threadEntry.th32OwnerProcessID == currentProcessId && threadEntry.th32ThreadID != currentThreadId) {
                 HANDLE hThread = OpenThread(THREAD_SUSPEND_RESUME, FALSE, threadEntry.th32ThreadID);
                 if (hThread) {
-                    SuspendThread(hThread);  
+                    SuspendThread(hThread);
                     CloseHandle(hThread);
                 }
             }
@@ -79,7 +79,7 @@ void __stdcall resumeAllThreads() {
 
     HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
     if (hSnapshot == INVALID_HANDLE_VALUE) {
-        std::cerr << "Failed to create snapshot.\n";
+        LOG_ERROR("Failed to create snapshot.");
         return;
     }
 
@@ -91,7 +91,7 @@ void __stdcall resumeAllThreads() {
             if (threadEntry.th32OwnerProcessID == currentProcessId && threadEntry.th32ThreadID != currentThreadId) {
                 HANDLE hThread = OpenThread(THREAD_SUSPEND_RESUME, FALSE, threadEntry.th32ThreadID);
                 if (hThread) {
-                    ResumeThread(hThread);  
+                    ResumeThread(hThread);
                     CloseHandle(hThread);
                 }
             }
@@ -106,45 +106,42 @@ void checkAddressSegment(void* address) {
 
     // Query information about the memory region that contains 'address'
     if (VirtualQuery(address, &mbi, sizeof(mbi))) {
-        LOG("Base Address: %p", mbi.BaseAddress);
-        LOG("Allocation Base: %p", mbi.AllocationBase);
-        LOG("Region Size: %zu bytes", mbi.RegionSize);
+        LOG_DEBUG("Base Address: %p", mbi.BaseAddress);
+        LOG_DEBUG("Allocation Base: %p", mbi.AllocationBase);
+        LOG_DEBUG("Region Size: %zu bytes", mbi.RegionSize);
 
-        LOG("State: ");
         switch (mbi.State) {
         case MEM_COMMIT:
-            LOG("Committed");
+            LOG_DEBUG("State: Committed");
             break;
         case MEM_FREE:
-            LOG("Free");
+            LOG_DEBUG("State: Free");
             break;
         case MEM_RESERVE:
-            LOG("Reserved");
+            LOG_DEBUG("State: Reserved");
             break;
         }
 
-        LOG("Type: ");
         switch (mbi.Type) {
         case MEM_IMAGE:
-            LOG("Image (code segment)");
+            LOG_DEBUG("Type: Image (code segment)");
             break;
         case MEM_MAPPED:
-            LOG("Mapped");
+            LOG_DEBUG("Type: Mapped");
             break;
         case MEM_PRIVATE:
-            LOG("Private (heap, stack, etc.)");
+            LOG_DEBUG("Type: Private (heap, stack, etc.)");
             break;
         }
 
-        LOG("Protection: ");
-        if (mbi.Protect & PAGE_EXECUTE) LOG("Execute");
-        if (mbi.Protect & PAGE_EXECUTE_READ) LOG("Execute/Read");
-        if (mbi.Protect & PAGE_EXECUTE_READWRITE) LOG("Execute/Read/Write");
-        if (mbi.Protect & PAGE_READONLY) LOG("Read-Only");
-        if (mbi.Protect & PAGE_READWRITE) LOG("Read/Write");
+        if (mbi.Protect & PAGE_EXECUTE) LOG_DEBUG("Protection: Execute");
+        if (mbi.Protect & PAGE_EXECUTE_READ) LOG_DEBUG("Protection: Execute/Read");
+        if (mbi.Protect & PAGE_EXECUTE_READWRITE) LOG_DEBUG("Protection: Execute/Read/Write");
+        if (mbi.Protect & PAGE_READONLY) LOG_DEBUG("Protection: Read-Only");
+        if (mbi.Protect & PAGE_READWRITE) LOG_DEBUG("Protection: Read/Write");
     }
     else {
-        LOG("Failed to query memory information.");
+        LOG_ERROR("Failed to query memory information.");
     }
 }
 
@@ -153,37 +150,37 @@ LONG WINAPI ExceptionHandler(EXCEPTION_POINTERS* ExceptionInfo) {
     void* exceptionAddress = ExceptionInfo->ExceptionRecord->ExceptionAddress;
     CONTEXT* context = ExceptionInfo->ContextRecord;
 
-    LOG("Exception Code:", "0x", (void*)exceptionCode);
-    LOG("Exception Address:", "0x", (void*)exceptionAddress);
+    LOG_ERROR("Exception Code: 0x%08X", exceptionCode);
+    LOG_ERROR("Exception Address: %p", exceptionAddress);
 
     switch (exceptionCode) {
     case EXCEPTION_ACCESS_VIOLATION:
-        LOG("Exception: Access Violation");
+        LOG_ERROR("Exception: Access Violation");
         break;
     case EXCEPTION_ARRAY_BOUNDS_EXCEEDED:
-        LOG("Exception: Array Bounds Exceeded");
+        LOG_ERROR("Exception: Array Bounds Exceeded");
         break;
     case EXCEPTION_FLT_DIVIDE_BY_ZERO:
-        LOG("Exception: Float Divide by Zero");
+        LOG_ERROR("Exception: Float Divide by Zero");
         break;
     case EXCEPTION_INT_DIVIDE_BY_ZERO:
-        LOG("Exception: Integer Divide by Zero");
+        LOG_ERROR("Exception: Integer Divide by Zero");
         break;
     default:
-        LOG("Exception: Unknown");
+        LOG_ERROR("Exception: Unknown (0x%08X)", exceptionCode);
         break;
     }
 
-    LOG("Register State:");
-    LOG("EAX:", "0x", (void*)context->Eax);
-    LOG("EBX:", "0x", (void*)context->Ebx);
-    LOG("ECX:", "0x", (void*)context->Ecx);
-    LOG("EDX:", "0x", (void*)context->Edx);
-    LOG("ESI:", "0x", (void*)context->Esi);
-    LOG("EDI:", "0x", (void*)context->Edi);
-    LOG("EBP:", "0x", (void*)context->Ebp);
-    LOG("ESP:", "0x", (void*)context->Esp);
-    LOG("EIP:", "0x", (void*)context->Eip);
+    LOG_ERROR("Register State:");
+    LOG_ERROR("EAX: 0x%08X", context->Eax);
+    LOG_ERROR("EBX: 0x%08X", context->Ebx);
+    LOG_ERROR("ECX: 0x%08X", context->Ecx);
+    LOG_ERROR("EDX: 0x%08X", context->Edx);
+    LOG_ERROR("ESI: 0x%08X", context->Esi);
+    LOG_ERROR("EDI: 0x%08X", context->Edi);
+    LOG_ERROR("EBP: 0x%08X", context->Ebp);
+    LOG_ERROR("ESP: 0x%08X", context->Esp);
+    LOG_ERROR("EIP: 0x%08X", context->Eip);
 
     HANDLE process = GetCurrentProcess();
     HANDLE thread = GetCurrentThread();
@@ -199,14 +196,14 @@ LONG WINAPI ExceptionHandler(EXCEPTION_POINTERS* ExceptionInfo) {
     stackFrame.AddrStack.Offset = context->Esp;
     stackFrame.AddrStack.Mode = AddrModeFlat;
 
-    LOG("Stack Trace:");
+    LOG_ERROR("Stack Trace:");
     for (int i = 0; i < 10; i++) {
         if (!StackWalk64(IMAGE_FILE_MACHINE_I386, process, thread, &stackFrame, context, NULL,
             SymFunctionTableAccess64, SymGetModuleBase64, NULL)) {
             break;
         }
 
-        LOG("Frame", i, ":", "0x", (void*)stackFrame.AddrPC.Offset);
+        LOG_ERROR("Frame %d: 0x%08X", i, (DWORD)stackFrame.AddrPC.Offset);
     }
     SymCleanup(process);
 

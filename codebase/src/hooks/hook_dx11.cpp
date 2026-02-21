@@ -19,7 +19,7 @@ static void* getPresentAddress() {
 
     HWND hWnd = CreateWindow(L"DummyWindow", L"DummyWindow", WS_OVERLAPPEDWINDOW, 0, 0, 100, 100, nullptr, nullptr, wc.hInstance, nullptr);
     if (hWnd == nullptr) {
-        LOG("ERROR: Failed to create dummy window.");
+        LOG_ERROR("Failed to create dummy window.");
         return nullptr;
     }
 
@@ -41,12 +41,12 @@ static void* getPresentAddress() {
     );
 
     if (FAILED(hr)) {
-        LOG("ERROR: Failed to create device and swap chain.");
+        LOG_ERROR("Failed to create device and swap chain.");
         return nullptr;
     }
 
     void** vmt = *(void***)pSwapChain;
-    void* presentAddr = vmt[PRESENT_INDEX]; 
+    void* presentAddr = vmt[PRESENT_INDEX];
 
     pSwapChain->Release();
     pDevice->Release();
@@ -61,42 +61,42 @@ static bool __stdcall initDX11(IDXGISwapChain* swapChain) {
 	if (SUCCEEDED(swapChain->GetDevice(__uuidof(ID3D11Device), (void**)&hookVars::device))) {
         hookVars::device->GetImmediateContext(&hookVars::deviceContext);
         if (hookVars::deviceContext == nullptr) {
-			LOG("GetImmediateContext failed, deviceContext is null.");
+			LOG_ERROR("GetImmediateContext failed, deviceContext is null.");
 			return false;
         }
-		LOG("SUCCESS: Got device and device context.");
-			
+		LOG_INFO("Got device and device context.");
+
 		DXGI_SWAP_CHAIN_DESC swapChainDesc;
 		if (FAILED(swapChain->GetDesc(&swapChainDesc))) {
-			LOG("Get swapChainDesc failed.");
+			LOG_ERROR("GetDesc failed on swap chain.");
 			return false;
 		}
-		LOG("SUCCESS: Got swapChainDesc.");
+		LOG_INFO("Got swapChainDesc.");
 		renderVars::g_hwnd = swapChainDesc.OutputWindow;
 
 		ID3D11Texture2D* backBuffer = nullptr;
 		if (FAILED(swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&backBuffer)))
 		{
-			LOG("GetBuffer() failed/backBuffer == null");
+			LOG_ERROR("GetBuffer() failed, backBuffer is null.");
 			return false;
 		}
-		LOG("SUCCESS: Got back buffer.");
+		LOG_INFO("Got back buffer.");
 
 		if (FAILED(hookVars::device->CreateRenderTargetView(backBuffer, NULL, &renderVars::renderTargetView))) {
-			LOG("CreateRenderTargetView failed.");
+			LOG_ERROR("CreateRenderTargetView failed.");
 			return false;
 		}
-		LOG("SUCCESS: Created render target view.");
+		LOG_INFO("Created render target view.");
 		backBuffer->Release();
 
 		if (!initOverlay(hookVars::device, hookVars::deviceContext)) {
-			LOG("ERROR: initOverlay failed.");
+			LOG_ERROR("initOverlay failed.");
 			return false;
 		}
-		LOG("SUCCESS: initOverlay completed successfully.");
+		LOG_INFO("initOverlay completed successfully.");
 	}
 	else {
-		LOG("swapChain->GetDevice failed.");
+		LOG_ERROR("swapChain->GetDevice failed.");
 		return false;
 	}
 	return true;
@@ -107,15 +107,15 @@ static HRESULT __stdcall hookHandler(IDXGISwapChain* swapChain,
     UINT Flags)
 {
     if (swapChain == nullptr) {
-        LOG("ERROR: Swap chain is null.");
+        LOG_ERROR("Swap chain is null.");
     }
 
     if (!renderVars::initialized) {
         if (initDX11(swapChain)) {
-            LOG("SUCCESS: initDX11 completed successfully.");
+            LOG_INFO("initDX11 completed successfully.");
         }
         else {
-            LOG("ERROR: initDX11 failed.");
+            LOG_ERROR("initDX11 failed.");
         }
     }
 
@@ -142,7 +142,7 @@ __declspec(naked) void __stdcall hookedPresent(IDXGISwapChain* swapChain, UINT S
     dxgi.dll:6A85E1F0                 mov     edi, edi        ; CODE XREF: [thunk]:CDXGISwapChain::Present`adjustor{56}' (uint,uint)
     dxgi.dll:6A85E1F2                 push    ebp
     dxgi.dll:6A85E1F3                 mov     ebp, esp
-    dxgi.dll:6A85E1F5                 and     esp, 0FFFFFFF8h 
+    dxgi.dll:6A85E1F5                 and     esp, 0FFFFFFF8h
 
     plutonium disassembly:
     present starts at 0x6A85E1F0
@@ -156,17 +156,17 @@ __declspec(naked) void __stdcall hookedPresent(IDXGISwapChain* swapChain, UINT S
     */
 
     __asm {
-        pushad // general 
+        pushad // general
         pushfd // flags
 
         mov eax, dword ptr ss : [ebp + 0x10] // Flags
-        push eax 
+        push eax
 
         mov eax, dword ptr ss : [ebp + 0xC] // SyncInterval
-        push eax 
+        push eax
 
         mov eax, dword ptr ss : [ebp + 0x8] // swapChain
-        push eax 
+        push eax
 
         call hookHandler
 
@@ -190,15 +190,15 @@ static bool __stdcall installHook() {
 
     hookVars::oPresent = (BYTE*)getPresentAddress();
     if (!hookVars::oPresent) {
-        LOG("ERROR: Failed to get Present address.");
+        LOG_ERROR("Failed to get Present address.");
         return false;
     }
     hookVars::oPresent += HOOK_OFFSET;
     hookVars::resumeAddr = hookVars::oPresent + TRAMPOLINE_SZ;
-	    
+
     DWORD oldProtect;
     if (!VirtualProtect(hookVars::oPresent, TRAMPOLINE_SZ, PAGE_EXECUTE_READWRITE, &oldProtect)) {
-        LOG("ERROR: Failed to change memory protection on Present.");
+        LOG_ERROR("Failed to change memory protection on Present.");
         return false;
     }
 
@@ -206,20 +206,20 @@ static bool __stdcall installHook() {
     DWORD hookRelativeAddr = (DWORD)&hookedPresent - ((DWORD)hookVars::oPresent + JMP_SZ);
     hookVars::oPresent[0] = JMP;
     memcpy(hookVars::oPresent + 1, &hookRelativeAddr, sizeof(DWORD));
-    
+
     // pad remaining bytes with NOPs
     for (int i = JMP_SZ; i < TRAMPOLINE_SZ; i++) {
 		hookVars::oPresent[i] = NOP;
     }
-    
+
     if (!VirtualProtect(hookVars::oPresent, TRAMPOLINE_SZ, oldProtect, &oldProtect)) {
-	    LOG("ERROR: Failed to restore memory protection on Present.");
+	    LOG_ERROR("Failed to restore memory protection on Present.");
 	    return false;
     }
 
     _mm_sfence(); // barrier to ensure that the changes are visible to other threads
     // this is unnecessary because we pause all threads but just in case
-    
+
     FlushInstructionCache(GetCurrentProcess(), hookVars::oPresent, TRAMPOLINE_SZ);
     // flush to ensure that new instructions are visible to CPU
 
@@ -240,7 +240,7 @@ void __stdcall startThread(HMODULE hModule) {
     std::ofstream logFile(desktopPath, std::ios::app);
 
     if (!logFile) {
-        LOG("ERROR: Failed to open log file on the Desktop.");
+        LOG_ERROR("Failed to open log file on the Desktop.");
         return;
     }
 
@@ -248,20 +248,20 @@ void __stdcall startThread(HMODULE hModule) {
     std::streambuf* originalCoutBuffer = std::cout.rdbuf(&dualBuf);
     std::streambuf* originalCerrBuffer = std::cerr.rdbuf(&dualBuf);
 
-    LOG("Hook thread started, checking process details.");
+    LOG_INFO("Hook thread started, checking process details.");
     SetUnhandledExceptionFilter(ExceptionHandler);
 
     ULONG64 bitMask = 0;
     if (!GetProcessMitigationPolicy(GetCurrentProcess(), ProcessMitigationOptionsMask, &bitMask, sizeof(ULONG64))) {
-        LOG("ERROR: Process mitigation policy call failed.");
+        LOG_ERROR("Process mitigation policy call failed.");
         return;
     }
 
-    LOG("----- Process mitigation options: -----\n", mitMaskToString(bitMask));
-    LOG("---------------------------------------");
+    LOG_INFO("----- Process mitigation options: -----\n%s", mitMaskToString(bitMask).c_str());
+    LOG_INFO("---------------------------------------");
 
     if (!installHook()) {
-        LOG("Failed to install hook.");
+        LOG_ERROR("Failed to install hook.");
         return;
     }
     while (1);

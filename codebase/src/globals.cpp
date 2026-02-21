@@ -29,6 +29,7 @@ namespace renderVars {
 	ImGuiContext*					ctx = nullptr; 				// stored globally to reduce overhead inside renderOverlay
 	HWND							g_hwnd = nullptr; 			// background window we're running on top of
 	RECT							rect = {}; 					// used for dynamically checking if wnd was resized
+	WNDPROC							oWndProc = nullptr;			// original window procedure, saved before hooking
 }
 
 // guiVars are globals used often for showing content and/or menu logic

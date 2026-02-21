@@ -3,6 +3,10 @@
 #include <string>
 #include <streambuf>
 #include <iostream>
+#include <iomanip>
+#include <cstdarg>
+#include <cstring>
+#include <sstream>
 #include <Windows.h>
 
 class DualOutputBuf : public std::streambuf {
@@ -27,55 +31,10 @@ private:
     std::streambuf* fileBuf;
 };
 
-/*
-* Converts an HRESULT error code to a human-readable std::string.
- *
- * @param hr The HRESULT error code to convert.
- * @return std::string representation of the error code.
-*/
 std::string __stdcall HresultErrorToString(HRESULT hr);
-
-/*
-* Converts a DWORD error code (such as from GetLastError()) to a human-readable std::string.
- *
- * @param dw The DWORD error code to convert.
- * @return std::string representation of the error code.
-*/
 std::string __stdcall dwordErrorToString(DWORD dw);
-
-/*
-* Converts a ULONG64 mask returned by GetProcessMitigation to a human-readable string.
-* @param: mask ULONG64 mask to convert.
-* @return std::string representation of the policies in place.
-*/
 std::string __stdcall mitMaskToString(ULONG64& mask);
 
-// Base case: only one argument left 
-template<typename T>
-void __stdcall logArgs(T&& t) {
-    std::cout << std::forward<T>(t);
-}
-
-// Recursive case: more than one argument 
-template<typename T, typename... Args>
-void __stdcall logArgs(T&& t, Args&&... args) {
-    std::cout << std::forward<T>(t) << " ";
-    logArgs(std::forward<Args>(args)...);
-}
-
-// helper for log macro
-template<typename... Args>
-void __stdcall logHelper(const char* file, int line, Args&&... args) {
-    std::cout << file << ":" << line << " ";
-    logArgs(std::forward<Args>(args)...);
-    std::cout << std::endl;
-}
-
-/*
-* Converts a pointer to a string as a hex address.
-* @param ptr The pointer to convert.
-* @return std::string representation of the pointer as a hex address.
-*/
 template<typename T>
 std::string __stdcall toHex(T* ptr) {
     std::string str;
@@ -87,11 +46,6 @@ std::string __stdcall toHex(T* ptr) {
 	return str;
 }
 
-/*
-* Converts a variable to a string as a hex address.
-* @param var The variable to convert.
-* @return std::string representation of the variable as a hex address.
-*/
 template<typename T>
 std::string __stdcall toHex(T var) {
 	std::string str;
@@ -103,5 +57,31 @@ std::string __stdcall toHex(T var) {
 	return str;
 }
 
-// Macro to print file, line, and any number of arguments
-#define LOG(...) logHelper(__FILE__, __LINE__, __VA_ARGS__)
+// Log levels — higher number = more verbose
+#define LOG_LEVEL_ERROR 0
+#define LOG_LEVEL_INFO  1
+#define LOG_LEVEL_DEBUG 2
+
+#ifndef LOG_LEVEL
+#define LOG_LEVEL LOG_LEVEL_DEBUG
+#endif
+
+void logPrint(const char* level, const char* file, int line, const char* fmt, ...);
+
+#if LOG_LEVEL >= LOG_LEVEL_ERROR
+#define LOG_ERROR(fmt, ...) logPrint("ERROR", __FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#else
+#define LOG_ERROR(fmt, ...) ((void)0)
+#endif
+
+#if LOG_LEVEL >= LOG_LEVEL_INFO
+#define LOG_INFO(fmt, ...) logPrint("INFO", __FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#else
+#define LOG_INFO(fmt, ...) ((void)0)
+#endif
+
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+#define LOG_DEBUG(fmt, ...) logPrint("DEBUG", __FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#else
+#define LOG_DEBUG(fmt, ...) ((void)0)
+#endif

@@ -68,6 +68,7 @@ namespace renderVars {
 	extern ImGuiContext* ctx; // same as above
 	extern HWND g_hwnd;
 	extern RECT rect; // for smart menu resizing, also to reduce overhead
+	extern WNDPROC oWndProc; // original window procedure, saved before hooking
 }
 
 // for actual ImGui content

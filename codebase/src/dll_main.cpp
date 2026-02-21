@@ -37,8 +37,8 @@
     }
 
     int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPSTR lpCmdLine, _In_ int nCmdShow) {
-        LOG("Using Menu Only mode");
-        LOG("Starting ImGui overlay...");
+        LOG_INFO("Using Menu Only mode");
+        LOG_INFO("Starting ImGui overlay...");
 
         const wchar_t CLASS_NAME[] = L"DX9WindowClass"; // Changed to wide character string
 
@@ -71,7 +71,7 @@
         LPDIRECT3DDEVICE9 ptrDevice;
         if (FAILED(pD3D->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hwnd,
             D3DCREATE_HARDWARE_VERTEXPROCESSING, &d3dpp, &ptrDevice))) {
-            LOG("Failed to create Direct3D device.");
+            LOG_ERROR("Failed to create Direct3D device.");
             pD3D->Release();
             DestroyWindow(hwnd);
             return 1;

@@ -5,6 +5,27 @@ static PlaceholderData placeholderData = {};
 #endif
 
 /*
+* Hooked window procedure. Forwards messages to ImGui first.
+* If ImGui wants keyboard/mouse input, we consume the message instead of passing it to the game.
+*/
+LRESULT CALLBACK hookedWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+    if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
+        return true;
+
+    ImGuiIO& io = ImGui::GetIO();
+
+    // if ImGui wants the keyboard, eat keyboard messages
+    if (io.WantCaptureKeyboard && (msg == WM_KEYDOWN || msg == WM_KEYUP || msg == WM_CHAR || msg == WM_SYSKEYDOWN || msg == WM_SYSKEYUP))
+        return true;
+
+    // if ImGui wants the mouse, eat mouse messages
+    if (io.WantCaptureMouse && (msg >= WM_MOUSEFIRST && msg <= WM_MOUSELAST))
+        return true;
+
+    return CallWindowProc(renderVars::oWndProc, hWnd, msg, wParam, lParam);
+}
+
+/*
 * Styles the ImGui overlay.
 * credits to https://github.com/GraphicsProgramming/dear-imgui-styles
 */
@@ -117,10 +138,10 @@ bool __stdcall initMemTable() {
    // self-explanatory, sets up global memtable
     uintptr_t moduleBase = resolveModuleAddress(nullptr, 0);
     if (moduleBase == 0) {
-        LOG("ERROR: Failed to get module base address of Plutonium.");
+        LOG_ERROR("Failed to get module base address of Plutonium.");
         return false;
     }
-	LOG("Got module base address of Plutonium: 0x", (void*)moduleBase);
+	LOG_INFO("Got module base address of Plutonium: 0x%p", (void*)moduleBase);
 
    uintptr_t playerBasePtr = moduleBase + 0x1D88290;
    uintptr_t playerBase = 0;
@@ -383,49 +404,55 @@ void __stdcall showMemoryTable() {
 */
 bool __stdcall initOverlay(ID3D11Device *device, ID3D11DeviceContext *deviceContext) {
 	if (!device || !deviceContext) {
-		LOG("ERROR: Invalid device or device context.");
+		LOG_ERROR("Invalid device or device context.");
 		return false;
 	}
-    
-    LOG("Initializing ImGui...");
-    LOG("Creating ImGui context...");
+
+    LOG_INFO("Initializing ImGui...");
+    LOG_DEBUG("Creating ImGui context...");
     renderVars::ctx = ImGui::CreateContext();
     if (!renderVars::ctx) {
-        LOG("Failed to create ImGui context.");
+        LOG_ERROR("Failed to create ImGui context.");
         return false;
     }
 
     ImGui::SetCurrentContext(renderVars::ctx);
 
-    LOG("Setting ImGui style...");
+    LOG_DEBUG("Setting ImGui style...");
     setImGuiStyle();
 
     renderVars::io = &ImGui::GetIO();
 	if (!renderVars::io) {
-		LOG("ERROR: Failed to get ImGui IO (nullptr).");
+		LOG_ERROR("Failed to get ImGui IO (nullptr).");
 		return false;
 	}
     renderVars::io->ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-    renderVars::io->WantCaptureKeyboard = true;
-    renderVars::io->WantCaptureMouse = true;
+
+    // hook the game's WndProc so ImGui receives input messages
+    renderVars::oWndProc = (WNDPROC)SetWindowLongPtr(renderVars::g_hwnd, GWLP_WNDPROC, (LONG_PTR)hookedWndProc);
+    if (!renderVars::oWndProc) {
+        LOG_ERROR("Failed to hook WndProc.");
+        return false;
+    }
+    LOG_INFO("Hooked WndProc.");
 
     // init backend with correct window handle
     if (!ImGui_ImplWin32_Init(renderVars::g_hwnd)) {
-        LOG("ImGui_ImplWin32_Init failed.");
+        LOG_ERROR("ImGui_ImplWin32_Init failed.");
         return false;
     }
     if (!ImGui_ImplDX11_Init(device, deviceContext)) {
-        LOG("ImGui_ImplDX11_Init failed.");
+        LOG_ERROR("ImGui_ImplDX11_Init failed.");
         return false;
     }
-    LOG("ImGui initialized successfully.");
+    LOG_INFO("ImGui initialized successfully.");
 
-    LOG("Initializing memory table...");
+    LOG_INFO("Initializing memory table...");
     if (!initMemTable()) {
-		LOG("Failed to initialize memory table.");
+		LOG_ERROR("Failed to initialize memory table.");
 		return false;
     }
-    LOG("Memory table initialized successfully");
+    LOG_INFO("Memory table initialized successfully.");
 	renderVars::initialized = true;
     return true;
 }
@@ -517,18 +544,10 @@ void __stdcall renderContent() {
 */
 void __stdcall renderOverlay(ID3D11Device* device, ID3D11DeviceContext* deviceContext) {
     if (!GetClientRect(renderVars::g_hwnd, &renderVars::rect)) {
-		LOG("ERROR: Failed to get client rect.");
+		LOG_ERROR("Failed to get client rect.");
     }
     renderVars::io->DisplaySize = ImVec2((float)(renderVars::rect.right - renderVars::rect.left),
         (float)(renderVars::rect.bottom - renderVars::rect.top));
-
-#ifndef _MENU_ONLY
-    // this needs to be done every frame in order to have responsive input (e.g. for buttons to work when clicked)
-    // only applicable for actual DLL inside cheat, for menu testing this breaks things
-    renderVars::io->MouseDown[0] = GetAsyncKeyState(VK_LBUTTON) & 0x8000;
-    renderVars::io->MouseDown[1] = GetAsyncKeyState(VK_RBUTTON) & 0x8000;
-    renderVars::io->MouseDown[2] = GetAsyncKeyState(VK_MBUTTON) & 0x8000;
-#endif
 
     ImGui_ImplDX11_NewFrame();
     ImGui_ImplWin32_NewFrame();
