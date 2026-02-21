@@ -128,12 +128,6 @@ bool __stdcall initMemTable() {
        playerBase = *reinterpret_cast<uintptr_t*>(playerBasePtr);
    }
 
-   uintptr_t crosshairAddress = 0;
-   if (playerBase != 0) {
-       uintptr_t crosshairPtr = playerBase + 0x588;
-       crosshairAddress = *reinterpret_cast<uintptr_t*>(crosshairPtr);
-   }
-
    guiVars::memoryTable.push_back({ "Player struct", 0x02188290, "N/A", "Player struct base address", "Unknown" });
    guiVars::memoryTable.push_back({ "Health", resolveModuleAddress(PE_MODULE_NAME, 0x1DC1568), 0u, "Realtime player health", "Unknown" });
    guiVars::memoryTable.push_back({ "Health maximum", 0x021C1568 + 0x4, 0u, "Maximum player health, 100 w/o Juggernog, 150 otherwise", "Unknown" });
@@ -144,8 +138,6 @@ bool __stdcall initMemTable() {
    guiVars::memoryTable.push_back({ "Gravity", playerBase + 0x8C, 0u, "Local player gravity multiplier", "Player" });
    guiVars::memoryTable.push_back({ "Static speed", playerBase + 0x94, 0u, "Local player speed", "Player" });
    guiVars::memoryTable.push_back({ "Local name", 0x2347BC8 + 0x10C, "name", "Local player name", "Player" });
-
-   guiVars::memoryTable.push_back({ "Crosshair", crosshairAddress, 0u, "Local player crosshair", "Player" });
 
    guiVars::memoryTable.push_back({ "View Angle X", 0x23453A0, 0.0f, "Local player view angle X", "Player" });
    guiVars::memoryTable.push_back({ "View Angle Y", 0x23453A4, 0.0f, "Local player view angle Y", "Player" });
@@ -383,7 +375,6 @@ void __stdcall showMemoryTable() {
         ImGui::EndTable();
     }
 }
-
 
 /*
 	* Initializes ImGui overlay inside our hook.
