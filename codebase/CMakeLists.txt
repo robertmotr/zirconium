@@ -1,19 +1,19 @@
 cmake_minimum_required(VERSION 3.16)
 project(zirconium CXX)
 
-# ── Language standard ──────────────────────────────────────────────────────────
+# Language standard 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# ── Output directories (mirrors VS layout: solution root/build/) ───────────────
+# Output directories
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/../build)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/../build)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/../build/intermediate)
 set(CMAKE_PDB_OUTPUT_DIRECTORY     ${CMAKE_SOURCE_DIR}/../build)
 
-# ── ImGui static lib ──────────────────────────────────────────────────────────
-# Must be compiled with /Gz too — the main DLL reads imgui headers under StdCall
+# ImGui static lib
+# Must be compiled with /Gz too, the main DLL reads imgui headers under StdCall
 # mode, so the compiled definitions must match or you get LNK2019.
 set(IMGUI_DIR ${CMAKE_SOURCE_DIR}/external/imgui)
 
@@ -44,7 +44,6 @@ if(MSVC)
     target_compile_options(imgui PRIVATE /Gz /MP)
 endif()
 
-# ── Main DLL target ───────────────────────────────────────────────────────────
 add_library(zirconium SHARED
     src/dll_main.cpp
     src/globals.cpp
@@ -75,7 +74,7 @@ target_compile_definitions(zirconium PRIVATE
     $<$<CONFIG:Release>:NDEBUG;_CONSOLE>
 )
 
-# ── MSVC compile options ───────────────────────────────────────────────────────
+# MSVC compile options
 if(MSVC)
     target_compile_options(zirconium PRIVATE
         /W3             # Warning level 3
