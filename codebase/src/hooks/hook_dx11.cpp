@@ -2,10 +2,11 @@
 #include <d3d11.h>
 #include <dxgi.h>
 
+void __stdcall performEject();
+
 LRESULT CALLBACK dummyWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     return DefWindowProc(hWnd, msg, wParam, lParam);
 }
-
 /*
 * This function creates a dummy window and a swap chain to get the address of the Present function.
 * @return the address of the Present function
@@ -106,6 +107,16 @@ static HRESULT __stdcall hookHandler(IDXGISwapChain* swapChain,
     UINT SyncInterval,
     UINT Flags)
 {
+    // eject path: clean up everything, then signal startThread to unload the DLL
+    if (hookVars::ejectRequested && !hookVars::cleanupDone) {
+        performEject();
+        hookVars::cleanupDone = true;
+        return TRUE;
+    }
+    if (hookVars::cleanupDone) {
+        return TRUE;
+    }
+
     if (swapChain == nullptr) {
         LOG_ERROR("Swap chain is null.");
     }
@@ -202,6 +213,9 @@ static bool __stdcall installHook() {
         return false;
     }
 
+	// save original bytes before patching so we can restore them on eject
+    memcpy(hookVars::originalBytes, hookVars::oPresent, TRAMPOLINE_SZ);
+
 	// overwrite the first bytes of Present with a jump to our hook
     DWORD hookRelativeAddr = (DWORD)&hookedPresent - ((DWORD)hookVars::oPresent + JMP_SZ);
     hookVars::oPresent[0] = JMP;
@@ -228,10 +242,76 @@ static bool __stdcall installHook() {
 }
 
 /*
+* Restores the original bytes at the hook site, removing the trampoline JMP.
+*/
+static void __stdcall uninstallHook() {
+    if (!hookVars::oPresent) return;
+
+    DWORD oldProtect;
+    if (!VirtualProtect(hookVars::oPresent, TRAMPOLINE_SZ, PAGE_EXECUTE_READWRITE, &oldProtect)) {
+        LOG_ERROR("uninstallHook: VirtualProtect failed.");
+        return;
+    }
+    memcpy(hookVars::oPresent, hookVars::originalBytes, TRAMPOLINE_SZ);
+    VirtualProtect(hookVars::oPresent, TRAMPOLINE_SZ, oldProtect, &oldProtect);
+    FlushInstructionCache(GetCurrentProcess(), hookVars::oPresent, TRAMPOLINE_SZ);
+    LOG_INFO("Hook uninstalled, original bytes restored.");
+}
+
+/*
+* Tears down all resources acquired during injection: removes the Present hook,
+* restores the original WndProc, shuts down ImGui, and releases D3D refs.
+* Called from hookHandler() on the render thread when ejectRequested is set.
+*/
+void __stdcall performEject() {
+    LOG_INFO("Eject requested — beginning cleanup.");
+
+    // restore Present bytes with threads paused for safety
+    pauseAllThreads();
+    uninstallHook();
+    resumeAllThreads();
+
+    // restore game's original window procedure
+    if (renderVars::oWndProc && renderVars::g_hwnd) {
+        SetWindowLongPtr(renderVars::g_hwnd, GWLP_WNDPROC, (LONG_PTR)renderVars::oWndProc);
+        LOG_INFO("WndProc restored.");
+    }
+
+    // shut down ImGui backends and destroy context
+    ImGui_ImplDX11_Shutdown();
+    ImGui_ImplWin32_Shutdown();
+    ImGui::DestroyContext();
+    renderVars::ctx = nullptr;
+    renderVars::io = nullptr;
+    LOG_INFO("ImGui shut down.");
+
+    // release the render target view we created
+    if (renderVars::renderTargetView) {
+        renderVars::renderTargetView->Release();
+        renderVars::renderTargetView = nullptr;
+    }
+
+    // release the D3D refs we acquired via GetDevice/GetImmediateContext
+    if (hookVars::deviceContext) {
+        hookVars::deviceContext->Release();
+        hookVars::deviceContext = nullptr;
+    }
+    if (hookVars::device) {
+        hookVars::device->Release();
+        hookVars::device = nullptr;
+    }
+
+    renderVars::initialized = false;
+    LOG_INFO("Cleanup complete.");
+}
+
+/*
 * Starts the hook thread.
-* @param hModule the handle to the DLL module
+* @param hModule the handle to the DLL module (passed as lpParameter from CreateThread)
 */
 void __stdcall startThread(HMODULE hModule) {
+    hookVars::hSelf = hModule;
+
     AllocConsole();
     freopen_s(reinterpret_cast<FILE**>(stdout), "CONOUT$", "w", stdout);
 
@@ -241,6 +321,7 @@ void __stdcall startThread(HMODULE hModule) {
 
     if (!logFile) {
         LOG_ERROR("Failed to open log file on the Desktop.");
+        FreeLibraryAndExitThread(hookVars::hSelf, 0);
         return;
     }
 
@@ -254,6 +335,11 @@ void __stdcall startThread(HMODULE hModule) {
     ULONG64 bitMask = 0;
     if (!GetProcessMitigationPolicy(GetCurrentProcess(), ProcessMitigationOptionsMask, &bitMask, sizeof(ULONG64))) {
         LOG_ERROR("Process mitigation policy call failed.");
+        std::cout.rdbuf(originalCoutBuffer);
+        std::cerr.rdbuf(originalCerrBuffer);
+        logFile.close();
+        FreeConsole();
+        FreeLibraryAndExitThread(hookVars::hSelf, 0);
         return;
     }
 
@@ -262,7 +348,25 @@ void __stdcall startThread(HMODULE hModule) {
 
     if (!installHook()) {
         LOG_ERROR("Failed to install hook.");
+        std::cout.rdbuf(originalCoutBuffer);
+        std::cerr.rdbuf(originalCerrBuffer);
+        logFile.close();
+        FreeConsole();
+        FreeLibraryAndExitThread(hookVars::hSelf, 0);
         return;
     }
-    while (1);
+
+    LOG_INFO("Hook installed. Waiting for eject signal...");
+
+    // wait until the render thread signals that cleanup is complete
+    while (!hookVars::cleanupDone) {
+        Sleep(50);
+    }
+
+    LOG_INFO("Eject complete. Unloading DLL.");
+    std::cout.rdbuf(originalCoutBuffer);
+    std::cerr.rdbuf(originalCerrBuffer);
+    logFile.close();
+    FreeConsole();
+    FreeLibraryAndExitThread(hookVars::hSelf, 0);
 }

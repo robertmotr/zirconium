@@ -57,6 +57,10 @@ namespace guiVars {
 namespace hookVars {
 	BYTE*							resumeAddr = nullptr;
 	BYTE*							oPresent = nullptr;
+	BYTE							originalBytes[TRAMPOLINE_SZ] = {};
+	volatile bool					ejectRequested = false;
+	volatile bool					cleanupDone = false;
+	HMODULE							hSelf = nullptr;
 	ID3D11Device*					device = nullptr;
 	ID3D11DeviceContext*			deviceContext = nullptr;
 }

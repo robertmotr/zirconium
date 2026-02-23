@@ -89,6 +89,10 @@ namespace guiVars {
 namespace hookVars {
 	extern BYTE* resumeAddr;
     extern BYTE* oPresent;
+    extern BYTE originalBytes[TRAMPOLINE_SZ]; // saved before patching, restored on eject
+    extern volatile bool ejectRequested;      // set by UI to trigger eject
+    extern volatile bool cleanupDone;         // set by hookHandler after cleanup; signals startThread
+    extern HMODULE hSelf;                     // our own DLL module handle for FreeLibraryAndExitThread
 	extern ID3D11Device* device;
 	extern ID3D11DeviceContext* deviceContext;
 }

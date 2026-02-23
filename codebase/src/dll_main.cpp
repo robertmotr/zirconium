@@ -5,7 +5,7 @@
 
 		if (fdwReason == DLL_PROCESS_ATTACH) {
             DisableThreadLibraryCalls(hModule);
-			CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)startThread, NULL, NULL, NULL);
+			CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)startThread, hModule, NULL, NULL);
 		}
 		//else if (fdwReason == DLL_PROCESS_DETACH) {
 		//	LOG("DLL_PROCESS_DETACH called.");

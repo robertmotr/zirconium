@@ -534,6 +534,30 @@ void __stdcall renderContent() {
 			Text("The purpose of this project is to encourage learning about reverse engineering and to provide resources to help others get started.");
             EndTabItem();
         }
+
+        // push all three tab states so the red colour persists when hovered/selected
+        PushStyleColor(ImGuiCol_Tab,        ImVec4(0.55f, 0.0f, 0.0f, 1.0f));
+        PushStyleColor(ImGuiCol_TabHovered, ImVec4(0.75f, 0.0f, 0.0f, 1.0f));
+        PushStyleColor(ImGuiCol_TabActive,  ImVec4(1.0f,  0.0f, 0.0f, 1.0f));
+        if (BeginTabItem("Eject Zirconium")) {
+            Spacing();
+            TextUnformatted("Eject Zirconium from the process.");
+            TextUnformatted("This restores the original Present hook and WndProc,");
+            TextUnformatted("shuts down ImGui, and unloads the DLL cleanly.");
+            Spacing();
+            Separator();
+            Spacing();
+            PushStyleColor(ImGuiCol_Button,        ImVec4(0.6f, 0.0f, 0.0f, 1.0f));
+            PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.8f, 0.0f, 0.0f, 1.0f));
+            PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
+            if (Button("Eject Zirconium")) {
+                hookVars::ejectRequested = true;
+            }
+            PopStyleColor(3);
+            EndTabItem();
+        }
+        PopStyleColor(3);
+        
 		EndTabBar();
 	}
     End();
