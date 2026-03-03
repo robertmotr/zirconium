@@ -9,9 +9,14 @@ DLL-injectable game cheat for Plutonium Black Ops 2 Zombies based off reverse-en
 ## TODO:
 - upload executable in Releases
 - ESP
+  - ~~box~~ (done)
+  - skeleton
+  - snap lines
+  - distance
+  - ~~health~~ (done)
 - aimbot
-- better debug screen
-- uninject DLL option and reset state
+- perks
+- teleport
 
 ## Done:
 - refactor logging
@@ -19,3 +24,5 @@ DLL-injectable game cheat for Plutonium Black Ops 2 Zombies based off reverse-en
   - remove weird recursive template solution
   - add log level + conditional logging based on level
 - port build system to cmake from visual studio
+- uninject DLL option and reset state
+- better debug tab
