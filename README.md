@@ -30,6 +30,9 @@ Thank you to all the people on unknowncheats.me who have reversed tons of offset
 - aimbot
 - perks
 - teleport
+- god mode
+- spawn/use drops
+- 
 
 ## Done:
 - refactor logging
