@@ -1,4 +1,6 @@
-#include "mem.h"
+#include "pch.h"
+
+#include "zirconium_memory.h"
 
 /*
 * Finds complete address given a module name and offset, i.e "client.dll" + 0x1234 = 0x12345678.
@@ -6,7 +8,7 @@
 * @param offset The offset from the module base address.
 * @return The final calculated address.
 */
-uintptr_t resolveModuleAddress(const char* moduleName, const uintptr_t offset) {
+uintptr_t zirconium::memory_resolveModuleAddress(const char* moduleName, const uintptr_t offset) {
     uintptr_t moduleBase = NULL;
     if (moduleName == nullptr) {
         moduleBase = (uintptr_t)GetModuleHandle(NULL);
@@ -42,7 +44,7 @@ uintptr_t resolveModuleAddress(const char* moduleName, const uintptr_t offset) {
 /*
 * Pauses all threads in the current process except the calling thread.
 */
-void __stdcall pauseAllThreads() {
+void __stdcall zirconium::memory_pauseAllThreads() {
     DWORD currentThreadId = GetCurrentThreadId();
     DWORD currentProcessId = GetCurrentProcessId();
 
@@ -73,7 +75,7 @@ void __stdcall pauseAllThreads() {
 /*
 * Resumes all threads in the current process except the calling thread.
 */
-void __stdcall resumeAllThreads() {
+void __stdcall zirconium::memory_resumeAllThreads() {
     DWORD currentThreadId = GetCurrentThreadId();
     DWORD currentProcessId = GetCurrentProcessId();
 
@@ -101,51 +103,7 @@ void __stdcall resumeAllThreads() {
     CloseHandle(hSnapshot);
 }
 
-void checkAddressSegment(void* address) {
-    MEMORY_BASIC_INFORMATION mbi;
-
-    // Query information about the memory region that contains 'address'
-    if (VirtualQuery(address, &mbi, sizeof(mbi))) {
-        LOG_DEBUG("Base Address: %p", mbi.BaseAddress);
-        LOG_DEBUG("Allocation Base: %p", mbi.AllocationBase);
-        LOG_DEBUG("Region Size: %zu bytes", mbi.RegionSize);
-
-        switch (mbi.State) {
-        case MEM_COMMIT:
-            LOG_DEBUG("State: Committed");
-            break;
-        case MEM_FREE:
-            LOG_DEBUG("State: Free");
-            break;
-        case MEM_RESERVE:
-            LOG_DEBUG("State: Reserved");
-            break;
-        }
-
-        switch (mbi.Type) {
-        case MEM_IMAGE:
-            LOG_DEBUG("Type: Image (code segment)");
-            break;
-        case MEM_MAPPED:
-            LOG_DEBUG("Type: Mapped");
-            break;
-        case MEM_PRIVATE:
-            LOG_DEBUG("Type: Private (heap, stack, etc.)");
-            break;
-        }
-
-        if (mbi.Protect & PAGE_EXECUTE) LOG_DEBUG("Protection: Execute");
-        if (mbi.Protect & PAGE_EXECUTE_READ) LOG_DEBUG("Protection: Execute/Read");
-        if (mbi.Protect & PAGE_EXECUTE_READWRITE) LOG_DEBUG("Protection: Execute/Read/Write");
-        if (mbi.Protect & PAGE_READONLY) LOG_DEBUG("Protection: Read-Only");
-        if (mbi.Protect & PAGE_READWRITE) LOG_DEBUG("Protection: Read/Write");
-    }
-    else {
-        LOG_ERROR("Failed to query memory information.");
-    }
-}
-
-LONG WINAPI ExceptionHandler(EXCEPTION_POINTERS* ExceptionInfo) {
+LONG WINAPI zirconium::ExceptionHandler(EXCEPTION_POINTERS* ExceptionInfo) {
     DWORD exceptionCode = ExceptionInfo->ExceptionRecord->ExceptionCode;
     void* exceptionAddress = ExceptionInfo->ExceptionRecord->ExceptionAddress;
     CONTEXT* context = ExceptionInfo->ContextRecord;

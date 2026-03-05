@@ -27,7 +27,15 @@
 #include <dbghelp.h>
 #include <fstream>
 #include <cstdlib>
-// link dx9 stuff
+#include <stdint.h>
+#include <cstddef>
+#include <cstdint>
+#include <cstdio>
+#include <cstring>
+#include <cmath>
+#include <type_traits>
+
+// link dx11 stuff
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "dbghelp.lib")
@@ -36,8 +44,11 @@
 #include "imgui.h"
 #include "imgui_impl_dx11.h"
 #include "imgui_impl_win32.h"
-#include "imgui_style.h"
+#include "zirconium_imgui_style.h"
 #include "imgui_internal.h"
 #include "misc/cpp/imgui_stdlib.h"
 
-#include "logger.h"
+// zirconium utils that will probably never be changed
+#include "zirconium_log.h"
+#include "zirconium_math.h"
+#include "zirconium_memory.h"

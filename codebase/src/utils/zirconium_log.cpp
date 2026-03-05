@@ -1,4 +1,6 @@
-#include "logger.h"
+#include "pch.h"
+
+#include "zirconium_log.h"
 
 static void enableAnsiColors() {
     static bool enabled = false;

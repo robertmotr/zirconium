@@ -9,6 +9,34 @@
 #include <sstream>
 #include <Windows.h>
 
+#define LOG_LEVEL_ERROR 0
+#define LOG_LEVEL_INFO  1
+#define LOG_LEVEL_DEBUG 2
+
+#ifndef LOG_LEVEL
+#define LOG_LEVEL LOG_LEVEL_DEBUG
+#endif
+
+void logPrint(const char* level, const char* file, int line, const char* fmt, ...);
+
+#if LOG_LEVEL >= LOG_LEVEL_ERROR
+#define LOG_ERROR(fmt, ...) logPrint("ERROR", __FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#else
+#define LOG_ERROR(fmt, ...) ((void)0)
+#endif
+
+#if LOG_LEVEL >= LOG_LEVEL_INFO
+#define LOG_INFO(fmt, ...) logPrint("INFO", __FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#else
+#define LOG_INFO(fmt, ...) ((void)0)
+#endif
+
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+#define LOG_DEBUG(fmt, ...) logPrint("DEBUG", __FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#else
+#define LOG_DEBUG(fmt, ...) ((void)0)
+#endif
+
 class DualOutputBuf : public std::streambuf {
 public:
     DualOutputBuf(std::streambuf* consoleBuf, std::streambuf* fileBuf)
@@ -56,32 +84,3 @@ std::string __stdcall toHex(T var) {
 	str += stream.str();
 	return str;
 }
-
-// Log levels — higher number = more verbose
-#define LOG_LEVEL_ERROR 0
-#define LOG_LEVEL_INFO  1
-#define LOG_LEVEL_DEBUG 2
-
-#ifndef LOG_LEVEL
-#define LOG_LEVEL LOG_LEVEL_DEBUG
-#endif
-
-void logPrint(const char* level, const char* file, int line, const char* fmt, ...);
-
-#if LOG_LEVEL >= LOG_LEVEL_ERROR
-#define LOG_ERROR(fmt, ...) logPrint("ERROR", __FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#else
-#define LOG_ERROR(fmt, ...) ((void)0)
-#endif
-
-#if LOG_LEVEL >= LOG_LEVEL_INFO
-#define LOG_INFO(fmt, ...) logPrint("INFO", __FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#else
-#define LOG_INFO(fmt, ...) ((void)0)
-#endif
-
-#if LOG_LEVEL >= LOG_LEVEL_DEBUG
-#define LOG_DEBUG(fmt, ...) logPrint("DEBUG", __FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#else
-#define LOG_DEBUG(fmt, ...) ((void)0)
-#endif

@@ -46,11 +46,11 @@ endif()
 
 add_library(zirconium SHARED
     src/dll_main.cpp
-    src/globals.cpp
-    src/hooks/hook_dx11.cpp
-    src/rendering/imgui_overlay.cpp
-    src/utils/logger.cpp
-    src/utils/mem.cpp
+    src/game/zirconium_game.cpp
+    src/hooks/zirconium_hook_dx11.cpp
+    src/rendering/zirconium_imgui_overlay.cpp
+    src/utils/zirconium_log.cpp
+    src/utils/zirconium_memory.cpp
 )
 
 target_include_directories(zirconium PRIVATE
@@ -59,7 +59,9 @@ target_include_directories(zirconium PRIVATE
     includes
     includes/hooks
     includes/utils
-    includes/rendering
+    includes/render
+    includes/ui
+    includes/game
 )
 
 # Per-configuration preprocessor definitions
