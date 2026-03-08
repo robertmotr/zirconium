@@ -213,7 +213,7 @@
       <CheatEntries>
         <CheatEntry>
           <ID>77</ID>
-          <Description>"arbitrary zombie struct"</Description>
+          <Description>"arbitrary zombie struct (gentity idx 16)"</Description>
           <ShowAsSigned>0</ShowAsSigned>
           <GroupHeader>1</GroupHeader>
           <Address>021C5828</Address>
@@ -287,6 +287,13 @@
       <Description>"view matrix (16 floats starting here)"</Description>
       <VariableType>Float</VariableType>
       <Address>0103AD40</Address>
+    </CheatEntry>
+    <CheatEntry>
+      <ID>89</ID>
+      <Description>"gentity idx 0 (player)"</Description>
+      <ShowAsSigned>0</ShowAsSigned>
+      <VariableType>4 Bytes</VariableType>
+      <Address>021C13C0</Address>
     </CheatEntry>
   </CheatEntries>
   <CheatCodes>
@@ -3712,8 +3719,7 @@
     </Structure>
     <Structure Name="unnamed structure" AutoFill="0" AutoCreate="1" DefaultHex="0" AutoDestroy="1" DoNotSaveLocal="1" RLECompression="1" AutoCreateStructsize="8192">
       <Elements>
-        <Element Offset="0" Vartype="Pointer" Bytesize="4" OffsetHex="00000000" DisplayMethod="unsigned integer"/>
-        <Element Offset="4" Vartype="Pointer" Bytesize="4" OffsetHex="00000004" DisplayMethod="unsigned integer"/>
+        <Element Offset="0" Vartype="Pointer" Bytesize="4" RLECount="2" OffsetHex="00000000" DisplayMethod="unsigned integer"/>
         <Element Offset="8" Vartype="4 Bytes" Bytesize="4" RLECount="4" OffsetHex="00000008" DisplayMethod="unsigned integer"/>
         <Element Offset="24" Vartype="Float" Bytesize="4" OffsetHex="00000018" DisplayMethod="unsigned integer"/>
         <Element Offset="28" Vartype="Pointer" Bytesize="4" OffsetHex="0000001C" DisplayMethod="unsigned integer"/>

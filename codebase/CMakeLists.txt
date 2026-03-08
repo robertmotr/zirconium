@@ -49,8 +49,11 @@ add_library(zirconium SHARED
     src/game/zirconium_game.cpp
     src/hooks/zirconium_hook_dx11.cpp
     src/rendering/zirconium_imgui_overlay.cpp
+    src/rendering/zirconium_memory_viewer.cpp
     src/utils/zirconium_log.cpp
     src/utils/zirconium_memory.cpp
+    src/utils/zirconium_type_registry.cpp
+    src/utils/zirconium_header_parser.cpp
 )
 
 target_include_directories(zirconium PRIVATE

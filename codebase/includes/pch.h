@@ -34,6 +34,8 @@
 #include <cstring>
 #include <cmath>
 #include <type_traits>
+#include <unordered_map>
+#include <stack>
 
 // link dx11 stuff
 #pragma comment(lib, "d3d11.lib")

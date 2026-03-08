@@ -5,6 +5,7 @@
 #include "zirconium_globals.h"
 #include "zirconium_imgui_style.h"
 #include "zirconium_game.h"
+#include "zirconium_memory_viewer.h"
 
 zirconium::RenderCtx  zirconium::g_renderCtx{};
 zirconium::OverlayCtx zirconium::g_overlayCtx{};
@@ -500,7 +501,18 @@ void __stdcall zirconium::overlay_show() {
 			EndTabItem();
 		}
 		if (BeginTabItem("Memory")) {
-            zirconium::overlay_showMemTblTab();
+            if (BeginTabBar("##mem_subtabs")) {
+                if (BeginTabItem("Table View")) {
+                    zirconium::overlay_showMemTblTab();
+                    EndTabItem();
+                }
+                if (BeginTabItem("Type Viewer")) {
+                    static zirconium::MemoryViewerCtx s_memViewerCtx;
+                    zirconium::overlay_showMemoryViewer(s_memViewerCtx);
+                    EndTabItem();
+                }
+                EndTabBar();
+            }
 			EndTabItem();
 		}
         if (BeginTabItem("Debug")) {
