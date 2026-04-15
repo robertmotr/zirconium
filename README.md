@@ -1,5 +1,14 @@
 # zirconium
-DLL-injectable game cheat for Plutonium Black Ops 2 Zombies based off reverse-engineered memory offsets and game code
+DLL-injectable game cheat for Plutonium Black Ops 2 Zombies
+
+# Features:
+- God mode
+- Invisibility from zombies
+- ESP
+- Aimbot
+- Third person FOV
+- No spread
+- No recoil
 
 # Building:
 ```
