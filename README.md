@@ -9,6 +9,14 @@ DLL-injectable game cheat for Plutonium Black Ops 2 Zombies
 - Third person FOV
 - No spread
 - No recoil
+- Teleport
+- Set the following:
+  - Money
+  - Ammo
+  - Grenades/claymores/monkey bombs etc
+  - Jump height
+  - Gravity
+  - Speed
 
 # Building:
 ```
