@@ -2,14 +2,13 @@
 DLL-injectable game cheat for Plutonium Black Ops 2 Zombies based off reverse-engineered memory offsets and game code
 
 # Building:
-1.
 ```
 git clone --recurse-submodules https://www.github.com/robertmotr/zirconium.git`
 cd zirconium/codebase
 cmake -B ../cmake-build -G "Visual Studio 17 2022" -A Win32
 cmake --build ../cmake-build --config Release
 ```
-2. DLL will be at ..\build\Release\zirconium.dll
+DLL will be at ..\build\Release\zirconium.dll
 
 # Usage:
 1. Open the game, load into a zombies match
