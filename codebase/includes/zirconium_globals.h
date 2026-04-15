@@ -21,44 +21,64 @@ namespace zirconium {
 
     extern RenderCtx g_renderCtx;
 
-    // Hook/trampoline state. Defined in zirconium_hook_dx11.cpp.
+    // Hook state. Defined in zirconium_main.cpp.
     struct HookCtx {
-        BYTE*               resumeAddr                   = nullptr;
-        BYTE*               oPresent                     = nullptr;
-        BYTE                originalBytes[TRAMPOLINE_SZ] = {};
+        void*               presentAddr                  = nullptr;  // resolved Present fn address
         volatile bool       ejectRequested               = false;
         volatile bool       cleanupDone                  = false;
         HMODULE             hSelf                        = nullptr;
         ID3D11Device*       device                       = nullptr;
         ID3D11DeviceContext* deviceContext               = nullptr;
+
+#ifdef ZIRCONIUM_USE_TRAMPOLINE
+        BYTE*               resumeAddr                   = nullptr;
+        BYTE*               oPresent                     = nullptr;
+        BYTE                originalBytes[TRAMPOLINE_SZ] = {};
+#else
+        int                 presentHwbpHandle            = -1;       // guac_handle_t
+#endif
+
+        int                 spreadHandle                 = 0;        // guac_handle_t
+        int                 recoilHandle                 = 0;        // guac_handle_t
+        int                 godmodeHandle                = 0;        // guac_handle_t
     };
 
     extern HookCtx g_hookCtx;
 
     // UI/menu state, defined in zirconium_imgui_overlay.cpp.
     struct OverlayCtx {
-        bool                showMenu            = true;
         ImGuiTabBarFlags    tabBarFlags         = ImGuiTabBarFlags_Reorderable
                                                 | ImGuiTabBarFlags_NoCloseWithMiddleMouseButton
                                                 | ImGuiTabBarFlags_FittingPolicyScroll;
 
-        // memory table (debug inspector)
-        std::vector<memoryTableEntry> memoryTable = {};
-        unsigned int        memoryTableIdx      = 0;
-        unsigned int        structViewIdx       = 0;
+        // aim/aimbot settings
+        bool                aimbotEnabled         = false;
+        int                 aimbotTargetMode      = 0;
+        int                 aimbotTargetBone      = 1;   // index into AIMBOT_BONE_OPTIONS[] (default: forehead)
+        bool                noSpread              = false;
+        bool                noRecoil              = false;
 
-        // aimbot settings
-        bool                aimbotEnabled       = false;
-        int                 aimbotTargetMode    = 0;   // 0=nearest, 1=fastest, 2=slowest, 3=lowest HP, 4=highest HP
-        bool                selectAimKey        = false;
-        bool                lockUntilEliminated = false;
-        int                 aimPreset           = 0;   // 0=silent, 1=legit, 2=rage
-        int                 aimFov              = 0;
-        float               lockSpeed           = 0.0f;
-
+        // esp/visuals
         // ESP settings
-        bool                espEnabled          = false;
-        int                 espRenderType       = ESP_RENDER_TYPE_NONE;
+        bool                espEnabled            = false;
+        bool                espRenderSnapLines    = false;
+        bool                espRenderZombieInfo   = false;
+
+        // misc. visuals
+        bool                thirdPerson           = false;
+        
+        // misc. settings
+        bool                godMode               = false;
+        float               gravity               = 800.0f;
+        bool                ignoreMe              = false;
+        float               jumpHeight            = 39.0F;
+        int                 speed                 = 0;
+
+        // only works when server runs in same process 
+        bool                isLanGame             = false;
+
+        // overlays other misc debugging shit for aimbot/esp
+        bool                visualDebug           = false;
 
     };
 
