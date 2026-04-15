@@ -1,12 +1,10 @@
 # zirconium
 DLL-injectable game cheat for Plutonium Black Ops 2 Zombies
-Downloads are in the [Releases](https://www.github.com/robertmotr/releases) page
+- Downloads are in the [Releases](https://www.github.com/robertmotr/releases) page
 
 ## Preview:
-Aimbot 
 ![Aimbot](aimbot_preview.gif)
 
-Misc. features (gravity/jump height/speed/god mode etc)
 ![Misc features](misc_preview.gif)
 
 # Features:
