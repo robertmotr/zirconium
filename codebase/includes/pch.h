@@ -6,6 +6,8 @@
 #define IMGUI_DEFINE_MATH_OPERATORS
 #endif
 
+#define _USE_MATH_DEFINES
+
 #include <Windows.h>
 #include <iostream>
 #include <string>
@@ -34,6 +36,11 @@
 #include <cstring>
 #include <cmath>
 #include <type_traits>
+#include <unordered_map>
+#include <stack>
+#include <intrin.h>
+
+#include "t6zm.exe.h"
 
 // link dx11 stuff
 #pragma comment(lib, "d3d11.lib")

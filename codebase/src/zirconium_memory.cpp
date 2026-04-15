@@ -1,0 +1,104 @@
+#include "pch.h"
+
+#include "zirconium_memory.h"
+
+namespace {
+    enum class ThreadAction { Suspend, Resume };
+
+    void forEachOtherThread(ThreadAction action) {
+        DWORD currentThreadId  = GetCurrentThreadId();
+        DWORD currentProcessId = GetCurrentProcessId();
+
+        HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
+        if (hSnapshot == INVALID_HANDLE_VALUE) {
+            LOG_ERROR("Failed to create snapshot.");
+            return;
+        }
+
+        THREADENTRY32 threadEntry;
+        threadEntry.dwSize = sizeof(THREADENTRY32);
+
+        if (Thread32First(hSnapshot, &threadEntry)) {
+            do {
+                if (threadEntry.th32OwnerProcessID == currentProcessId && threadEntry.th32ThreadID != currentThreadId) {
+                    HANDLE hThread = OpenThread(THREAD_SUSPEND_RESUME, FALSE, threadEntry.th32ThreadID);
+                    if (hThread) {
+                        if (action == ThreadAction::Suspend) SuspendThread(hThread);
+                        else                                 ResumeThread(hThread);
+                        CloseHandle(hThread);
+                    }
+                }
+            } while (Thread32Next(hSnapshot, &threadEntry));
+        }
+
+        CloseHandle(hSnapshot);
+    }
+}
+
+void __stdcall zirconium::memory_pauseAllThreads()  { forEachOtherThread(ThreadAction::Suspend); }
+void __stdcall zirconium::memory_resumeAllThreads() { forEachOtherThread(ThreadAction::Resume);  }
+
+LONG WINAPI zirconium::ExceptionHandler(EXCEPTION_POINTERS* ExceptionInfo) {
+    DWORD exceptionCode = ExceptionInfo->ExceptionRecord->ExceptionCode;
+    void* exceptionAddress = ExceptionInfo->ExceptionRecord->ExceptionAddress;
+    CONTEXT* context = ExceptionInfo->ContextRecord;
+
+    LOG_ERROR("Exception Code: 0x%08X", exceptionCode);
+    LOG_ERROR("Exception Address: %p", exceptionAddress);
+
+    switch (exceptionCode) {
+    case EXCEPTION_ACCESS_VIOLATION:
+        LOG_ERROR("Exception: Access Violation");
+        break;
+    case EXCEPTION_ARRAY_BOUNDS_EXCEEDED:
+        LOG_ERROR("Exception: Array Bounds Exceeded");
+        break;
+    case EXCEPTION_FLT_DIVIDE_BY_ZERO:
+        LOG_ERROR("Exception: Float Divide by Zero");
+        break;
+    case EXCEPTION_INT_DIVIDE_BY_ZERO:
+        LOG_ERROR("Exception: Integer Divide by Zero");
+        break;
+    default:
+        LOG_ERROR("Exception: Unknown (0x%08X)", exceptionCode);
+        break;
+    }
+
+    LOG_ERROR("Register State:");
+    LOG_ERROR("EAX: 0x%08X", context->Eax);
+    LOG_ERROR("EBX: 0x%08X", context->Ebx);
+    LOG_ERROR("ECX: 0x%08X", context->Ecx);
+    LOG_ERROR("EDX: 0x%08X", context->Edx);
+    LOG_ERROR("ESI: 0x%08X", context->Esi);
+    LOG_ERROR("EDI: 0x%08X", context->Edi);
+    LOG_ERROR("EBP: 0x%08X", context->Ebp);
+    LOG_ERROR("ESP: 0x%08X", context->Esp);
+    LOG_ERROR("EIP: 0x%08X", context->Eip);
+
+    HANDLE process = GetCurrentProcess();
+    HANDLE thread = GetCurrentThread();
+
+    SymInitialize(process, NULL, TRUE);
+    STACKFRAME64 stackFrame;
+    memset(&stackFrame, 0, sizeof(STACKFRAME64));
+
+    stackFrame.AddrPC.Offset = context->Eip;
+    stackFrame.AddrPC.Mode = AddrModeFlat;
+    stackFrame.AddrFrame.Offset = context->Ebp;
+    stackFrame.AddrFrame.Mode = AddrModeFlat;
+    stackFrame.AddrStack.Offset = context->Esp;
+    stackFrame.AddrStack.Mode = AddrModeFlat;
+
+    LOG_ERROR("Stack Trace:");
+    for (int i = 0; i < 10; i++) {
+        if (!StackWalk64(IMAGE_FILE_MACHINE_I386, process, thread, &stackFrame, context, NULL,
+            SymFunctionTableAccess64, SymGetModuleBase64, NULL)) {
+            break;
+        }
+
+        LOG_ERROR("Frame %d: 0x%08X", i, (DWORD)stackFrame.AddrPC.Offset);
+    }
+    SymCleanup(process);
+
+    return EXCEPTION_EXECUTE_HANDLER;
+}

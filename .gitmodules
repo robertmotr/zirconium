@@ -4,3 +4,7 @@
 [submodule "codebase/external/imgui"]
 	path = codebase/external/imgui
 	url = https://www.github.com/ocornut/imgui
+[submodule "codebase/external/guac"]
+	path = codebase/external/guac
+	url = https://github.com/robertmotr/guac.git
+	branch = main
