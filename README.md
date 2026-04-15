@@ -1,5 +1,6 @@
 # zirconium
 DLL-injectable game cheat for Plutonium Black Ops 2 Zombies
+Currently undetected in Plutonium.
 - Downloads are in the [Releases](https://www.github.com/robertmotr/releases) page
 
 ## Preview:
