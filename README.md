@@ -1,14 +1,15 @@
 # zirconium
 DLL-injectable game cheat for Plutonium Black Ops 2 Zombies based off reverse-engineered memory offsets and game code
 
-# LAN ONLY!!! I have never tested this with the anticheat on, and considering my code you'd probably get banned 
-
 # Building:
-1. `git clone https://www.github.com/robertmotr/zirconium.git`
-2. `cd codebase`
-3. `cmake -B ../cmake-build -G "Visual Studio 17 2022" -A Win32`
-4. `cmake --build ../cmake-build`
-5. DLL will be located in `..\build\Debug\zirconium.dll`
+1.
+```
+git clone --recurse-submodules https://www.github.com/robertmotr/zirconium.git`
+cd zirconium/codebase
+cmake -B ../cmake-build -G "Visual Studio 17 2022" -A Win32
+cmake --build ../cmake-build --config Release
+```
+2. DLL will be at ..\build\Release\zirconium.dll
 
 # Usage:
 1. Open the game, load into a zombies match
@@ -21,24 +22,24 @@ Thank you to all the people on unknowncheats.me who have reversed tons of offset
 
 ## TODO:
 - upload executable in Releases
-- ESP
-  - ~~box~~ (done)
-  - skeleton
-  - snap lines
-  - distance
-  - ~~health~~ (done)
-- aimbot
-- perks
-- teleport
-- god mode
-- spawn/use drops
-- 
+- aimbot smoothing
+- spinbot
+- magic wand/zombie pile(?)
 
 ## Done:
+- third person
 - refactor logging
   - coloured text based on log level
   - remove weird recursive template solution
   - add log level + conditional logging based on level
-- port build system to cmake from visual studio
+- port build system to cmake from vs
+- aimbot
 - uninject DLL option and reset state
 - better debug tab
+- teleport
+- god mode
+- ESP
+  - skeleton
+  - snap lines
+  - distance
+  - health
