@@ -53,7 +53,7 @@ Thank you to all the people on unknowncheats.me who have reversed tons of offset
   - Considering that DX11 is a DLL outside of the .text section it might be possible that it is not necessary to use hardware breakpoints + VEH to hook into `IDXGISwapChain::Present` without getting detected. Originally I spent a year of on and off progress trying to figure out how to trampoline hook this function (which you can still use if you toggle a build flag in `CMakeLists.txt`), but after discovering the checksum I ditched it and went with hooking with hardware breakpoints for everything.       
 
 ## TODO:
-- i asked claude to clean up my code and it just turned it into slop... maybe one day unslopify back into my original code
+- i asked claude to clean up my code before releasing this to make it look clean and it just turned it into slop... maybe one day unslopify back into my original code
 - aimbot smoothing/more aimbot options
 - spinbot
 - silent aim
