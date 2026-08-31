@@ -6,12 +6,6 @@ DLL-injectable game cheat for Call of Duty: Black Ops 2 Zombies (with the Pluton
 - This project exists because I grew up on BO2, and it also happened to be a good target for reversing. It's a 14 year old AAA game thats practically dead, but also happens to be a somewhat modern application for trying to reverse a big game engine.
 - I do not condone cheating. I am not responsible for when you inevitably get banned by using this. Thus, you should use this at your own risk.
 
-# Interesting observations I came across:
-- There exists a PDB file of the multiplayer server, which shares a lot of common functions with the client (even with Plutonium modifications). This can help speed up reversing by cross checking your progress in IDA against the PDB, but only to an extent. 
-- Plutonium uses Themida, but only certain parts of the .text section are obfuscated. Getting past the anti-debug just requires you to use ScyllaHide's Themida profile on x64dbg. It doesn't seem to use all the crazy Themida features to make reversing hell.
-- Plutonium runs a checksum on the .text section (maybe more sections) that verifies no bytes were changed against the original code. This means that any modification whatsoever in the .text section will change the checksum. The best way to hook functions is to use hardware breakpoints (https://en.wikipedia.org/wiki/X86_debug_register) and have them jump into vectored exception handlers for the functions you want to hook into. This will keep the checksum intact and thus undetected.
-  - Considering that DX11 is a DLL outside of the .text section it might be possible that it is not necessary to use hardware breakpoints + VEH to hook into `IDXGISwapChain::Present` without getting detected. Originally I spent a year of on and off progress trying to figure out how to trampoline hook this function (which you can still use if you toggle a build flag in `CMakeLists.txt`), but after discovering the checksum I ditched it and went with hooking with hardware breakpoints for everything.       
-
 ## Preview:
 ![Aimbot](aimbot_preview.gif)
 
@@ -51,6 +45,12 @@ DLL will be at `../build/Release/zirconium.dll`
 
 # Credits:
 Thank you to all the people on unknowncheats.me who have reversed tons of offsets :) 
+
+# Interesting observations I came across:
+- There exists a PDB file of the multiplayer server, which shares a lot of common functions with the client (even with Plutonium modifications). This can help speed up reversing by cross checking your progress in IDA against the PDB, but only to an extent. 
+- Plutonium uses Themida, but only certain parts of the .text section are obfuscated. Getting past the anti-debug just requires you to use ScyllaHide's Themida profile on x64dbg. It doesn't seem to use all the crazy Themida features to make reversing hell.
+- Plutonium runs a checksum on the .text section (maybe more sections) that verifies no bytes were changed against the original code. This means that any modification whatsoever in the .text section will change the checksum. The best way to hook functions is to use hardware breakpoints (https://en.wikipedia.org/wiki/X86_debug_register) and have them jump into vectored exception handlers for the functions you want to hook into. This will keep the checksum intact and thus undetected.
+  - Considering that DX11 is a DLL outside of the .text section it might be possible that it is not necessary to use hardware breakpoints + VEH to hook into `IDXGISwapChain::Present` without getting detected. Originally I spent a year of on and off progress trying to figure out how to trampoline hook this function (which you can still use if you toggle a build flag in `CMakeLists.txt`), but after discovering the checksum I ditched it and went with hooking with hardware breakpoints for everything.       
 
 ## TODO:
 - i asked claude to clean up my code and it just turned it into slop... maybe one day unslopify back into my original code
