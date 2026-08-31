@@ -4,7 +4,7 @@ DLL-injectable game cheat for Call of Duty: Black Ops 2 Zombies (with the Pluton
 
 # Disclaimer:
 - This project exists because I grew up on BO2, and it also happened to be a good target for reversing. It's a 14 year old AAA game thats practically dead, but also happens to be a somewhat modern application for trying to reverse a big game engine.
-- I do not condone cheating. I am not responsible for when you inevitably get banned by using this. Thus, you should use this at your own risk.
+- I do not condone cheating. I am not responsible for when you inevitably get banned by using this. Thus, use this at your own risk.
 
 ## Preview:
 ![Aimbot](aimbot_preview.gif)
